@@ -18,43 +18,55 @@
 
 import sensor, image, time
 
-#sensor.reset()
-#sensor.set_pixformat(sensor.RGB565)
-#sensor.set_framesize(sensor.QVGA)
-#sensor.skip_frames(time = 2000)
-
-#clock = time.clock()
-
-
-
-
 class LineTracking:
 
-    def __init__(self, kernal_size = 1, kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1], thresholds = [(100, 255)]):
+    def __init__(self, sensor, kernal_size = 1, kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1], thresholds = [(100, 255)]):
         self.kernal_size = kernal_size
         self.kernal = kernal
         self.thresholds = thresholds
+        self.sensor = sensor
+        self.sensorSettings = {}
+        self.isStarted = False
         return 0
 
 
-    def setSensorForLineDetection(sensor):
+    def start():
+        self._store_sensor_settings(self.sensor)
+        self._set_sensor_for_line_detection(self.sensor)
+        self.isStarted = True
+
+    def end():
+        # Resume sensor settings
+        self.sensor.set_pixformat(self.sensorSettings.pixformat)
+        self.sensor.set_framesize(self.sensorSettings.framesize)
+        sensor.skip_frames(time = 100)     # Wait for settings take effect.
+        self.isStarted = False
+
+    def _set_sensor_for_line_detection(sensor):
         sensor.set_pixformat(sensor.GRAYSCALE) # Set pixel format to GRAYSCALE
         sensor.set_framesize(sensor.HQVGA)
-        if (sensor.get_id() == sensor.OV7725): # Set the sharpness/edge register for OV7725
-            print("Using OV7725")
-            sensor.__write_reg(0xAC, 0xDF)
-            sensor.__write_reg(0x8F, 0xFF)
+        # if (sensor.get_id() == sensor.OV7725): # Set the sharpness/edge register for OV7725
+        #    print("Using OV7725")
+        #    sensor.__write_reg(0xAC, 0xDF)
+        #    sensor.__write_reg(0x8F, 0xFF)
         sensor.skip_frames(time = 100)     # Wait for settings take effect.
 
-    def __applyFilter__(img, threshold=True):
+    def _store_sensor_settings(sensor):
+        self.sensorSettings.pixformat = sensor.get_pixformat()
+        self.sensorSettings.framesize = sensor.get_framesize()
+
+
+    def _apply_filter(img, threshold=True):
         img.morph(self.kernel_size, self.kernel, threshold=threshold, invert=True)
         img.binary(thresholds)
         img.erode(1, threshold = 2)
         return img
 
 
-    def getLine(img):
-        #Todo: check if sensor is set
-        img = self.__applyFilter__(img)
+    def get_line(img):
+        if not self.isStarted:
+            print("Error: Set the camera first by calling LineTracking.start()")
+            return 0
+        img = self._apply_filter(img)
         line = img.get_regression([(255, 255)], robust=True)
         return line
