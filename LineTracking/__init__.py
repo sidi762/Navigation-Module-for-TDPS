@@ -36,19 +36,21 @@ class LineTracking:
 
     def end(self):
         # Resume sensor settings
-        self.sensor.set_pixformat(self.sensorSettings.pixformat)
-        self.sensor.set_framesize(self.sensorSettings.framesize)
-        self.sensor.skip_frames(time = 100)     # Wait for settings take effect.
+        sens = self.sensor
+        sens.set_pixformat(self.sensorSettings.pixformat)
+        sens.set_framesize(self.sensorSettings.framesize)
+        sens.skip_frames(time = 100)     # Wait for settings take effect.
         self.isStarted = False
 
     def _set_sensor_for_line_detection(self):
-        self.sensor.set_pixformat(self.sensor.GRAYSCALE) # Set pixel format to GRAYSCALE
-        self.sensor.set_framesize(self.sensor.HQVGA)
+        sens = self.sensor
+        sens.set_pixformat(self.sensor.GRAYSCALE) # Set pixel format to GRAYSCALE
+        sens.set_framesize(self.sensor.HQVGA)
         # if (self.sensor.get_id() == self.sensor.OV7725): # Set the sharpness/edge register for OV7725
         #    print("Using OV7725")
-        #    self.sensor.__write_reg(0xAC, 0xDF)
-        #    self.sensor.__write_reg(0x8F, 0xFF)
-        self.sensor.skip_frames(time = 100)     # Wait for settings take effect.
+        #    sens.__write_reg(0xAC, 0xDF)
+        #    sens.__write_reg(0x8F, 0xFF)
+        sens.skip_frames(time = 100)     # Wait for settings take effect.
 
     def _store_sensor_settings(self):
         self.sensorSettings['pixformat'] = self.sensor.get_pixformat()
