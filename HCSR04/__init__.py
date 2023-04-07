@@ -14,7 +14,6 @@ class HCSR04:
         """
         self.trig = trig
         self.echo = echo
-        return 0
 
     def getDistance(self):
         """
