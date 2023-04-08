@@ -15,13 +15,22 @@
 #          -3, -2, +1]
 #thresholds = [(100, 255)]
 
-import image, time
+import image, time, pid
 
 class LineTracking:
 
-    def __init__(self, sensor, kernal_size = 1, kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1], thresholds = [(100, 255)]):
+    def __init__(self, sensor, kernal_size = 1, kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1], thresholds = [(100, 255)], draw = False):
         """
             Class for line tracking
+            Arguments:
+                sensor: openMV sensor
+                kernal_size: The kernal size for filtering,
+                             calculated by kernel width = (size*2)+1, kernel height = (size*2)+1,
+                             defaults to 1 (3x3 kernal)
+                kernal: The kernal for filtering, defaults to [-3, +0, +1, -4, +8, +2, -3, -2, +1]
+                thresholds: The thresholds for binary filtering, defaults to [(100, 255)]
+                draw: Set to True to draw the resulting line on the captured image, defaults to False
+
             Usage:
                 line_tracking = LineTracking(sensor)
                 line_tracking.start()
@@ -35,6 +44,7 @@ class LineTracking:
         self.thresholds = thresholds
         self.sensorSettings = {'pixformat': 0, 'framesize': 0}
         self.isStarted = False
+        self.draw = draw
 
 
     def start(self):
