@@ -15,7 +15,8 @@
 #          -3, -2, +1]
 #thresholds = [(100, 255)]
 
-import image, time, pid
+import image, time
+from pid import PID
 
 class LineTracking:
 
@@ -35,17 +36,19 @@ class LineTracking:
                 line_tracking = LineTracking(sensor)
                 line_tracking.start()
                 while(True):
-                    rho_err, theta_err = line_tracking.calculate()
+                    control = line_tracking.calculate()
                     line = line_tracking.get_line()
                 line_tracking.stop()
         """
-        self.sensor = sensor
-        self.kernal_size = kernal_size
-        self.kernal = kernal
-        self.thresholds = thresholds
-        self.sensorSettings = {'pixformat': 0, 'framesize': 0}
-        self.isStarted = False
-        self.draw = draw
+        self._sensor = sensor
+        self._kernal_size = kernal_size
+        self._kernal = kernal
+        self._thresholds = thresholds
+        self._sensorSettings = {'pixformat': 0, 'framesize': 0}
+        self._isStarted = False
+        self._draw = draw
+        self._rho_pid = PID(p=0.4, i=0)
+        self._theta_pid = PID(p=0.001, i=0)
 
 
     def start(self):
@@ -54,64 +57,64 @@ class LineTracking:
         """
         self._store_sensor_settings()
         self._set_sensor_for_line_detection()
-        img = self.sensor.snapshot()
-        self.center_coord = img.width() / 2
-        self.isStarted = True
+        img = self._sensor.snapshot()
+        self._center_coord = img.width() / 2
+        self._isStarted = True
 
     def end(self):
         """
             Resumes sensor to the stored settings
         """
         # Resume sensor settings
-        sens = self.sensor
-        sens.set_pixformat(self.sensorSettings.pixformat)
-        sens.set_framesize(self.sensorSettings.framesize)
+        sens = self._sensor
+        sens.set_pixformat(self._sensorSettings.pixformat)
+        sens.set_framesize(self._sensorSettings.framesize)
         sens.skip_frames(time = 100)     # Wait for settings take effect.
-        self.isStarted = False
+        self._isStarted = False
 
     def _set_sensor_for_line_detection(self):
-        sens = self.sensor
-        sens.set_pixformat(self.sensor.GRAYSCALE) # Set pixel format to GRAYSCALE
-        sens.set_framesize(self.sensor.HQVGA)
-        # if (self.sensor.get_id() == self.sensor.OV7725): # Set the sharpness/edge register for OV7725
+        sens = self._sensor
+        sens.set_pixformat(self._sensor.GRAYSCALE) # Set pixel format to GRAYSCALE
+        sens.set_framesize(self._sensor.HQVGA)
+        # if (self._sensor.get_id() == self._sensor.OV7725): # Set the sharpness/edge register for OV7725
         #    print("Using OV7725")
         #    sens.__write_reg(0xAC, 0xDF)
         #    sens.__write_reg(0x8F, 0xFF)
         sens.skip_frames(time = 100)     # Wait for settings take effect.
 
     def _store_sensor_settings(self):
-        self.sensorSettings['pixformat'] = self.sensor.get_pixformat()
-        self.sensorSettings['framesize'] = self.sensor.get_framesize()
+        self._sensorSettings['pixformat'] = self._sensor.get_pixformat()
+        self._sensorSettings['framesize'] = self._sensor.get_framesize()
 
 
     def _apply_filter(self, img, threshold=True):
-        img.morph(self.kernal_size, self.kernal, threshold=threshold, invert=True)
-        img.binary(self.thresholds)
+        img.morph(self._kernal_size, self._kernal, threshold=threshold, invert=True)
+        img.binary(self._thresholds)
         img.erode(1, threshold = 2)
         return img
 
     def _capture_filter_and_calculate_line(self):
-        if not self.isStarted:
+        if not self._isStarted:
             print("Error: Set the camera first by calling LineTracking.start()")
             return 0
-        img = self.sensor.snapshot()
+        img = self._sensor.snapshot()
         img = self._apply_filter(img)
         line = img.get_regression([(255, 255)], robust=True)
-        self.img = img
+        self._img = img
         if line is not None:
-            if self.draw:
+            if self._draw:
                 img.draw_line(line.line(), color=(255,255,0))
-            self.calculatedLine = line
+            self._calculatedLine = line
             return line
 
     def _line_error(self, line):
         if line:
-            rho_err = abs(line.rho())-self.center_coord
+            rho_err = abs(line.rho())-self._center_coord
             if line.theta()>90:
                 theta_err = line.theta()-180
             else:
                 theta_err = line.theta()
-            self.rho_err, self.theta_err = rho_err, theta_err
+            self._rho_err, self._theta_err = rho_err, theta_err
             return rho_err, theta_err
         else
             return 0
@@ -119,12 +122,17 @@ class LineTracking:
     def calculate(self):
         line = self._capture_filter_and_calculate_line()
         rho_err, theta_err = self._line_error(line)
-        return rho_err, theta_err
+        rho_control = self._rho_pid.get_pid(rho_err, 1)
+        theta_control = self._theta_pid.get_pid(theta_err, 1)
+        self._rho_control, self._theta_control = rho_control, theta_control
+        control = rho_control + theta_control
+        self._control = control
+        return control
 
     def get_line(self):
         """
             Returns the detected line as a Line object. Returns None if no line is detected.
         """
-        if self.calculatedLine:
-            return self.calculatedLine
+        if self._calculatedLine:
+            return self._calculatedLine
         else return None
