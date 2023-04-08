@@ -53,6 +53,8 @@ class LineTracking:
         """
         self._store_sensor_settings()
         self._set_sensor_for_line_detection()
+        img = self.sensor.snapshot()
+        self.center_coord = img.width() / 2
         self.isStarted = True
 
     def end(self):
@@ -87,20 +89,41 @@ class LineTracking:
         img.erode(1, threshold = 2)
         return img
 
-
-    def get_line(self, draw = False):
-        """
-            Returns the tracked line as a Line object. Returns None if no line is detected.
-        """
+    def _capture_filter_and_calculate_line(self):
         if not self.isStarted:
             print("Error: Set the camera first by calling LineTracking.start()")
             return 0
         img = self.sensor.snapshot()
         img = self._apply_filter(img)
         line = img.get_regression([(255, 255)], robust=True)
-
+        self.img = img
         if line is not None:
-            if draw:
+            if self.draw:
                 img.draw_line(line.line(), color=(255,255,0))
+            self.calculatedLine = line
+            return line
 
-        return line
+    def _line_error(self, line):
+        if line:
+            rho_err = abs(line.rho())-self.center_coord
+            if line.theta()>90:
+                theta_err = line.theta()-180
+            else:
+                theta_err = line.theta()
+            self.rho_err, self.theta_err = rho_err, theta_err
+            return rho_err, theta_err
+        else
+            return 0
+
+    def calculate(self):
+        line = self._capture_filter_and_calculate_line()
+        rho_err, theta_err = self._line_error(line)
+        return rho_err, theta_err
+
+    def get_line(self):
+        """
+            Returns the detected line as a Line object. Returns None if no line is detected.
+        """
+        if self.calculatedLine:
+            return self.calculatedLine
+        else return None
