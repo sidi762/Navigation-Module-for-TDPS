@@ -35,6 +35,7 @@ class LineTracking:
                 line_tracking = LineTracking(sensor)
                 line_tracking.start()
                 while(True):
+                    rho_err, theta_err = line_tracking.calculate()
                     line = line_tracking.get_line()
                 line_tracking.stop()
         """
