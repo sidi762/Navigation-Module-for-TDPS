@@ -4,7 +4,6 @@
 # Sidi Liang, 2023
 #
 
-
 #Notes (to be removed):
 #kernel_size = 1 # kernel width = (size*2)+1, kernel height = (size*2)+1
 #kernel = [-9, +9, +11,\
@@ -21,6 +20,15 @@ import image, time
 class LineTracking:
 
     def __init__(self, sensor, kernal_size = 1, kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1], thresholds = [(100, 255)]):
+        """
+            Class for line tracking
+            Usage:
+                line_tracking = LineTracking(sensor)
+                line_tracking.start()
+                while(True):
+                    line = line_tracking.get_line()
+                line_tracking.stop()
+        """
         self.sensor = sensor
         self.kernal_size = kernal_size
         self.kernal = kernal
@@ -30,11 +38,17 @@ class LineTracking:
 
 
     def start(self):
+        """
+            Stores the current state of the sensor and sets the sensor for line tracking
+        """
         self._store_sensor_settings()
         self._set_sensor_for_line_detection()
         self.isStarted = True
 
     def end(self):
+        """
+            Resumes sensor to the stored settings
+        """
         # Resume sensor settings
         sens = self.sensor
         sens.set_pixformat(self.sensorSettings.pixformat)
@@ -64,7 +78,10 @@ class LineTracking:
         return img
 
 
-    def get_line(self):
+    def get_line(self, draw = False):
+        """
+            Returns the tracked line as a Line object. Returns None if no line is detected.
+        """
         if not self.isStarted:
             print("Error: Set the camera first by calling LineTracking.start()")
             return 0
@@ -73,6 +90,7 @@ class LineTracking:
         line = img.get_regression([(255, 255)], robust=True)
 
         if line is not None:
-            img.draw_line(line.line(), color=(255,255,0))
+            if draw:
+                img.draw_line(line.line(), color=(255,255,0))
 
         return line
