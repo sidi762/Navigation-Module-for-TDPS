@@ -150,7 +150,7 @@ class LineTracking:
             self._rho_err, self._theta_err = rho_err, theta_err
             return rho_err, theta_err
         else:
-            return 0
+            return 0, 0
 
     def calculate(self):
         """
