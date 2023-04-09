@@ -25,7 +25,7 @@ class DeadReckoning:
         sample_count = 10
         no_acc_count = 0
         no_movement_threshold = 5
-        time_now_dead_reckoning = time.time_ns() * 1000000 #ms
+        time_now_dead_reckoning = time.time_ns() / 1000000000 #s
         interval = time_now_dead_reckoning - self.time_last_dead_reckoning
 
         for i in range(sample_count):
