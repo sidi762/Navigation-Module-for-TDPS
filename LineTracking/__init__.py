@@ -16,6 +16,7 @@
 #thresholds = [(100, 255)]
 
 import image, time
+from LineTracking import dead_reckoning
 from pid import PID
 
 class LineTracking:
@@ -24,9 +25,9 @@ class LineTracking:
                  kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1],
                  thresholds = [(100, 255)],
                  rho_pid_p = 0.4, rho_pid_i = 0, rho_pid_d = 0,
-                 rho_pid_imax = None,
+                 rho_pid_imax = 0,
                  theta_pid_p = 0.001, theta_pid_i = 0, theta_pid_d = 0,
-                 theta_pid_imax = None,
+                 theta_pid_imax = 0,
                  draw = False):
         """
             Class for line tracking
@@ -148,7 +149,7 @@ class LineTracking:
                 theta_err = line.theta()
             self._rho_err, self._theta_err = rho_err, theta_err
             return rho_err, theta_err
-        else
+        else:
             return 0
 
     def calculate(self):
@@ -172,4 +173,5 @@ class LineTracking:
         """
         if self._calculatedLine:
             return self._calculatedLine
-        else return None
+        else:
+            return None
