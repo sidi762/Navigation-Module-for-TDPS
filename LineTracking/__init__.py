@@ -151,6 +151,12 @@ class LineTracking:
             return rho_err, theta_err
         else:
             return 0, 0
+            
+    def get_theta_err(self):
+        theta_err = self._theta_err
+        if theta_err < 0:
+            theta_err += 180
+        return theta_err
 
     def calculate(self):
         """
