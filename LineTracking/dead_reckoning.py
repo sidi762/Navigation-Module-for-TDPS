@@ -30,7 +30,7 @@ class DeadReckoning:
 
         for i in range(sample_count):
             #Take the average to reduce error
-            acc_x, acc_y, acc_z = imu.accelerometer() #m/s^2
+            acc_x, acc_y, acc_z = imu.linear_acceleration() #m/s^2
             a_x += acc_x
             a_y += acc_y
             a_z += acc_z
