@@ -108,6 +108,7 @@ class LineTracking:
         sens = self._sensor
         sens.set_pixformat(self._sensor.GRAYSCALE) # Set pixel format to GRAYSCALE
         sens.set_framesize(self._sensor.HQVGA)
+        #sens.set_windowing((60, 40, 160, 120))
         # if (self._sensor.get_id() == self._sensor.OV7725):
              # Set the sharpness/edge register for OV7725
         #    print("Using OV7725")
@@ -151,8 +152,12 @@ class LineTracking:
             return rho_err, theta_err
         else:
             return 0, 0
-            
+
     def get_theta_err(self):
+        """
+            Returns the theta error as in Hough transfrom
+            range: (0, 180) degrees
+        """
         theta_err = self._theta_err
         if theta_err < 0:
             theta_err += 180
