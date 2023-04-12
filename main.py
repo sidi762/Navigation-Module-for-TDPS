@@ -34,28 +34,52 @@ uart = pyb.UART(1, 115200)
 
 async def uart_messaging_json(data):
     data_json = json.dumps([status_data])
-    uart_send_buffer = b'\xaa\x55' +len(data_json).to_bytes(1, 'big') + bytes(data_json, 'utf-8') + b'\xbb'
+    uart_send_buffer = b'\xaa\x55'
+                       + len(data_json).to_bytes(1, 'big')
+                       + bytes(data_json, 'utf-8') + b'\xbb'
     print("UART sent: ", uart_send_buffer)
     print("UART len: ", len(uart_send_buffer))
     last_message = uart_send_buffer
     return uart_send_buffer
 
 async def readwrite():
+    '''
+        Coroutine handling UART communication with the master control.
+    '''
     swriter = uasyncio.StreamWriter(uart, {})
     sreader = uasyncio.StreamReader(uart)
     last_message = 'nil'
 
     while True:
         print('Waiting for incoming message...')
+        rcvbuf = ''
         rcv = await sreader.read(1)
         if rcv:
             print('Received: ', rcv)
             buf = last_message
             if rcv == b'\xcc':
+                # 0xcc: last message correctly received,
+                # send next message
                 buf = await uart_messaging_json(status_data)
                 last_message = buf
             elif rcv == b'\xdd':
+                # 0xdd: error in the last transmission,
+                # resend message
                 buf = last_message
+            elif rcv == b'\xaa':
+                # 0xaa 0x55: Incoming message
+                rcv = await sreader.read(1)
+                if rcv == b'\x55':
+                    while rcv != b'\xbb':
+                        rcv = await sreader.read(1)
+                        rcvbuf += rcv
+                    buf = b'\xcc' # Message correctly received
+                else:
+                    # Didn't match protocol, possible error in transmission
+                    buf = b'\xdd'
+
+
+
 
             await swriter.awrite(buf)
             print('Sent: ', buf)
@@ -121,6 +145,9 @@ async def start_patio_2():
 
 
 async def main():
+    '''
+        Main coroutine
+    '''
     while True:
         clock.tick()
         ret = 1
