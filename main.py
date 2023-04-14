@@ -70,10 +70,15 @@ async def readwrite():
                 # 0xaa 0x55: Incoming message
                 rcv = await sreader.read(1)
                 if rcv == b'\x55':
-                    while rcv != b'\xbb':
-                        rcv = await sreader.read(1)
-                        rcvbuf += rcv
-                    buf = b'\xcc' # Message correctly received
+                    # while rcv != b'\xbb':
+                    #     rcv = await sreader.read(1)
+                    #     rcvbuf += rcv
+                    rcv = await sreader.read(1)
+                    rcvbuf = await sreader.read(rcv)
+                    if await uart_recv_json(rcvbuf):
+                        buf = b'\xcc' # Message correctly received
+                    else:
+                        buf = = b'\xdd'
                 else:
                     # Didn't match protocol, possible error in transmission
                     buf = b'\xdd'
