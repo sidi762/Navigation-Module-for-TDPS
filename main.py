@@ -25,6 +25,7 @@ clock = time.clock()                # Create a clock object to track the FPS.
 status_data = {'Info_Task': 1,
                'Info_Patio': 1,
                'Info_Stage': 1,
+               'Info_Odometer': 0,
                'Control_Command': 0,
                'Control_Angle': 0,
                'Control_Velocity': 0}
@@ -36,11 +37,33 @@ async def uart_messaging_json(data):
     data_json = json.dumps([status_data])
     uart_send_buffer = b'\xaa\x55'
                        + len(data_json).to_bytes(1, 'big')
-                       + bytes(data_json, 'utf-8') + b'\xbb'
+                       + bytes(data_json, 'utf-8')
     print("UART sent: ", uart_send_buffer)
     print("UART len: ", len(uart_send_buffer))
     last_message = uart_send_buffer
     return uart_send_buffer
+
+async def update_status_data(data):
+    try:
+        status_data['Info_Odometer'] = data['Info_Odometer']
+    except:
+        return False
+    return True
+
+
+async def uart_recv_json(rcv_buffer):
+    data = ''
+    try:
+        data = json.loads(rcv_buffer)
+    except ValueError as err:
+        return False
+
+    if await update_status_data():
+        return True
+    else:
+        return False
+
+
 
 async def readwrite():
     '''
