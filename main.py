@@ -25,10 +25,14 @@ clock = time.clock()                # Create a clock object to track the FPS.
 status_data = {'Info_Task': 1,
                'Info_Patio': 1,
                'Info_Stage': 1,
-               'Info_Odometer': 0,
                'Control_Command': 0,
                'Control_Angle': 0,
                'Control_Velocity': 0}
+
+encoder_data = {'Info_Encoder_A': 0.0,
+                'Info_Encoder_B': 0.0,
+                'Info_Encoder_C': 0.0,
+                'Info_Encoder_D': 0.0}
 
 # UART using uart 1 and baud rate of 115200
 uart = pyb.UART(1, 115200)
@@ -45,7 +49,10 @@ async def uart_messaging_json(data):
 
 async def update_status_data(data):
     try:
-        status_data['Info_Odometer'] = data['Info_Odometer']
+        encoder_data['Info_Encoder_A'] = data['Info_Encoder_A']
+        encoder_data['Info_Encoder_B'] = data['Info_Encoder_B']
+        encoder_data['Info_Encoder_C'] = data['Info_Encoder_C']
+        encoder_data['Info_Encoder_D'] = data['Info_Encoder_D']
     except:
         return False
     return True
@@ -91,18 +98,26 @@ async def readwrite():
                 buf = last_message
             elif rcv == b'\xaa':
                 # 0xaa 0x55: Incoming message
+                correct_signal = 0
                 rcv = await sreader.read(1)
                 if rcv == b'\x55':
-                    # while rcv != b'\xbb':
-                    #     rcv = await sreader.read(1)
-                    #     rcvbuf += rcv
                     rcv = await sreader.read(1)
-                    rcvbuf = await sreader.read(rcv)
-                    if await uart_recv_json(rcvbuf):
-                        buf = b'\xcc' # Message correctly received
-                    else:
-                        buf = = b'\xdd'
-                else:
+                    if rcv == b'\x01':
+                        rcv = await sreader.read(1)
+                        if rcv == b'\xcc':
+                            correct_signal = 1
+                            # while rcv != b'\xbb':
+                            #     rcv = await sreader.read(1)
+                            #     rcvbuf += rcv
+                            rcv = await sreader.read(1)
+                            rcvbuf = await sreader.read(rcv)
+                            if await uart_recv_json(rcvbuf):
+                                buf = b'\xcc' # Message correctly received
+                            else:
+                                buf = = b'\xdd'
+
+
+                if correct_signal == 0:
                     # Didn't match protocol, possible error in transmission
                     buf = b'\xdd'
 
