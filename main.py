@@ -34,20 +34,20 @@ encoder_data = {'Info_Encoder_A': 0.0,
                 'Info_Encoder_C': 0.0,
                 'Info_Encoder_D': 0.0}
 
+master_is_ready = 0
+
 # UART using uart 1 and baud rate of 115200
 uart = pyb.UART(1, 115200)
 
 async def uart_messaging_json(data):
     data_json = json.dumps([status_data])
-    uart_send_buffer = b'\xaa\x55'
-                       + len(data_json).to_bytes(1, 'big')
-                       + bytes(data_json, 'utf-8')
+    uart_send_buffer = b'\xaa\x55' + len(data_json).to_bytes(1, 'big') + bytes(data_json, 'utf-8')
     print("UART sent: ", uart_send_buffer)
     print("UART len: ", len(uart_send_buffer))
     last_message = uart_send_buffer
     return uart_send_buffer
 
-async def update_status_data(data):
+async def update_encoder_data(data):
     try:
         encoder_data['Info_Encoder_A'] = data['Info_Encoder_A']
         encoder_data['Info_Encoder_B'] = data['Info_Encoder_B']
@@ -63,11 +63,14 @@ async def uart_recv_json(rcv_buffer):
     try:
         data = json.loads(rcv_buffer)
     except ValueError as err:
+        print("ValueError! Received json string invalid")
+        print("Message causing error: ", rcv_buffer)
         return False
 
-    if await update_status_data():
+    if await update_encoder_data():
         return True
     else:
+        print("Encoder_data failed to update, check data")
         return False
 
 
@@ -98,31 +101,29 @@ async def readwrite():
                 buf = last_message
             elif rcv == b'\xaa':
                 # 0xaa 0x55: Incoming message
-                correct_signal = 0
                 rcv = await sreader.read(1)
+                print('Received: ', rcv)
                 if rcv == b'\x55':
-                    rcv = await sreader.read(1)
-                    if rcv == b'\x01':
-                        rcv = await sreader.read(1)
-                        if rcv == b'\xcc':
-                            correct_signal = 1
-                            # while rcv != b'\xbb':
-                            #     rcv = await sreader.read(1)
-                            #     rcvbuf += rcv
-                            rcv = await sreader.read(1)
-                            rcvbuf = await sreader.read(rcv)
-                            if await uart_recv_json(rcvbuf):
-                                buf = b'\xcc' # Message correctly received
-                            else:
-                                buf = = b'\xdd'
-
-
-                if correct_signal == 0:
-                    # Didn't match protocol, possible error in transmission
+                    # while rcv != b'\xbb':
+                    #     rcv = await sreader.read(1)
+                    #     rcvbuf += rcv
+                    rcvlen = await sreader.read(1)
+                    rcvlen = int.from_bytes(rcvlen, 'big')
+                    print("rcvlen: ", rcvlen)
+                    if rcvlen == 1:
+                        print("Master control ready")
+                        master_is_ready = 1
+                        continue
+                    rcvbuf = await sreader.read(rcvlen)
+                    if await uart_recv_json(rcvbuf):
+                        buf = b'\xcc' # Message correctly received
+                    else:
+                        buf = b'\xdd'
+                else:
                     buf = b'\xdd'
 
-
-
+            else:
+                buf = b'\xdd'
 
             await swriter.awrite(buf)
             print('Sent: ', buf)
