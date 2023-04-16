@@ -34,20 +34,20 @@ encoder_data = {'Info_Encoder_A': 0.0,
                 'Info_Encoder_C': 0.0,
                 'Info_Encoder_D': 0.0}
 
+master_is_ready = 0
+
 # UART using uart 1 and baud rate of 115200
 uart = pyb.UART(1, 115200)
 
 async def uart_messaging_json(data):
     data_json = json.dumps([status_data])
-    uart_send_buffer = b'\xaa\x55'
-                       + len(data_json).to_bytes(1, 'big')
-                       + bytes(data_json, 'utf-8')
+    uart_send_buffer = b'\xaa\x55' + len(data_json).to_bytes(1, 'big') + bytes(data_json, 'utf-8')
     print("UART sent: ", uart_send_buffer)
     print("UART len: ", len(uart_send_buffer))
     last_message = uart_send_buffer
     return uart_send_buffer
 
-async def update_status_data(data):
+async def update_encoder_data(data):
     try:
         encoder_data['Info_Encoder_A'] = data['Info_Encoder_A']
         encoder_data['Info_Encoder_B'] = data['Info_Encoder_B']
@@ -63,11 +63,14 @@ async def uart_recv_json(rcv_buffer):
     try:
         data = json.loads(rcv_buffer)
     except ValueError as err:
+        print("ValueError! Received json string invalid")
+        print("Message causing error: ", rcv_buffer)
         return False
 
-    if await update_status_data():
+    if await update_encoder_data():
         return True
     else:
+        print("Encoder_data failed to update, check data")
         return False
 
 
@@ -98,31 +101,29 @@ async def readwrite():
                 buf = last_message
             elif rcv == b'\xaa':
                 # 0xaa 0x55: Incoming message
-                correct_signal = 0
                 rcv = await sreader.read(1)
+                print('Received: ', rcv)
                 if rcv == b'\x55':
-                    rcv = await sreader.read(1)
-                    if rcv == b'\x01':
-                        rcv = await sreader.read(1)
-                        if rcv == b'\xcc':
-                            correct_signal = 1
-                            # while rcv != b'\xbb':
-                            #     rcv = await sreader.read(1)
-                            #     rcvbuf += rcv
-                            rcv = await sreader.read(1)
-                            rcvbuf = await sreader.read(rcv)
-                            if await uart_recv_json(rcvbuf):
-                                buf = b'\xcc' # Message correctly received
-                            else:
-                                buf = = b'\xdd'
-
-
-                if correct_signal == 0:
-                    # Didn't match protocol, possible error in transmission
+                    # while rcv != b'\xbb':
+                    #     rcv = await sreader.read(1)
+                    #     rcvbuf += rcv
+                    rcvlen = await sreader.read(1)
+                    rcvlen = int.from_bytes(rcvlen, 'big')
+                    print("rcvlen: ", rcvlen)
+                    if rcvlen == 1:
+                        print("Master control ready")
+                        master_is_ready = 1
+                        continue
+                    rcvbuf = await sreader.read(rcvlen)
+                    if await uart_recv_json(rcvbuf):
+                        buf = b'\xcc' # Message correctly received
+                    else:
+                        buf = b'\xdd'
+                else:
                     buf = b'\xdd'
 
-
-
+            else:
+                buf = b'\xdd'
 
             await swriter.awrite(buf)
             print('Sent: ', buf)
@@ -150,8 +151,9 @@ async def start_patio_1():
     patio1_task2_stop_signal = 0
     patio1_task3_stop_signal = 0
     if current_task == 1:
-        # Line following
         status_data['Info_Task'] = 1
+        # Line following
+        status_data['Info_Stage'] = 1
         print("Performing task 1")
         while True:
             velocity = 100
@@ -165,18 +167,46 @@ async def start_patio_1():
                 dr.dead_reckoning(imu)
                 # print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
                 # print("Position m: ", dr.position_x, dr.position_y, dr.position_z)
+
             if patio1_task1_stop_signal:
+                velocity = 0
                 current_task = 2
+                line_tracking.end()
                 break
             await uasyncio.sleep_ms(1)
 
     elif current_task == 2:
-        # Crossing the bridge
         status_data['Info_Task'] = 2
 
+        #Turn right 90 degress
+        status_data['Info_Stage'] = 1
+
+        # Crossing the bridge
+        status_data['Info_Stage'] = 2
+        while True:
+            velocity = 50
+            #check_task_done()
+            if patio1_task2_stop_signal:
+                current_task = 3
+                break
+
+
     elif current_task == 3:
-        # Passing the Door
         status_data['Info_Task'] = 3
+
+        #Turn left 90 degress
+        status_data['Info_Stage'] = 1
+
+        # Passing the Door
+        status_data['Info_Stage'] = 2
+        while True:
+            velocity = 100
+            if patio1_task3_stop_signal:
+                #Patio 1 done
+                current_patio = 0
+                current_task = 0
+                current_stage = 0
+                break
 
     return 0
 
