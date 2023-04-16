@@ -215,7 +215,53 @@ async def start_patio_1():
 
 async def start_patio_2():
     status_data['Info_Patio'] = 2
-    print("In Patio 2, program not implemented yet, ending......")
+    print("In Patio 2")
+    current_task = status_data['Info_Task']
+    patio1_task1_stop_signal = 0
+    patio1_task2_stop_signal = 0
+    patio1_task3_stop_signal = 0
+    if current_task == 1:
+        # Arrow detection
+        status_data['Info_Task'] = 1
+        print("Performing task 1")
+
+        ###Moveforward by ultrasonic
+
+        ###arrowdetection
+        arrow=arrow_detection();
+                #Arrow.py
+
+        ###turn angle
+        if arrow=="left":
+            #imu.angle();
+        elif arrow=="forward":
+            #imu
+        elif arrow=="right":
+            #imu
+            
+        ###moveforward by ultrasonic
+        
+    elif current_task == 2:
+        #drop the ball
+        status_data['Info_Task'] = 2
+        ###find fence
+
+        ###distance to 0
+             #ultra
+        ###drop the ball
+             
+
+
+    elif current_task == 3:
+        # To planter
+        status_data['Info_Task'] = 3
+        ###imu turn left
+
+        ###go for apriltag
+
+
+
+    print("Patio 2 is progressing....can't wait to see:)...")
     return 0
 
 
