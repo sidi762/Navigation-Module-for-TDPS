@@ -60,6 +60,7 @@ async def update_encoder_data(data):
 
 async def uart_recv_json(rcv_buffer):
     data = ''
+    print("Processing rcvbuffer: ", rcv_buffer)
     try:
         data = json.loads(rcv_buffer)
     except ValueError as err:
@@ -67,10 +68,11 @@ async def uart_recv_json(rcv_buffer):
         print("Message causing error: ", rcv_buffer)
         return False
 
-    if await update_encoder_data():
+    if await update_encoder_data(data):
         return True
     else:
         print("Encoder_data failed to update, check data")
+        print("Message causing error: ", data)
         return False
 
 
