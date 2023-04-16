@@ -21,7 +21,7 @@ class DeadReckoning:
         # In local coordinates, i.e. x component of acceleration
         # will be in the sensor's x axis
         a_x, a_y, a_z = 0, 0, 0
-        accel_window = 0.08
+        accel_window = 0.05
         sample_count = 10
         no_acc_count = 0
         no_movement_threshold = 5
