@@ -151,8 +151,9 @@ async def start_patio_1():
     patio1_task2_stop_signal = 0
     patio1_task3_stop_signal = 0
     if current_task == 1:
-        # Line following
         status_data['Info_Task'] = 1
+        # Line following
+        status_data['Info_Stage'] = 1
         print("Performing task 1")
         while True:
             velocity = 100
@@ -166,18 +167,46 @@ async def start_patio_1():
                 dr.dead_reckoning(imu)
                 # print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
                 # print("Position m: ", dr.position_x, dr.position_y, dr.position_z)
+
             if patio1_task1_stop_signal:
+                velocity = 0
                 current_task = 2
+                line_tracking.end()
                 break
             await uasyncio.sleep_ms(1)
 
     elif current_task == 2:
-        # Crossing the bridge
         status_data['Info_Task'] = 2
 
+        #Turn right 90 degress
+        status_data['Info_Stage'] = 1
+
+        # Crossing the bridge
+        status_data['Info_Stage'] = 2
+        while True:
+            velocity = 50
+            #check_task_done()
+            if patio1_task2_stop_signal:
+                current_task = 3
+                break
+
+
     elif current_task == 3:
-        # Passing the Door
         status_data['Info_Task'] = 3
+
+        #Turn left 90 degress
+        status_data['Info_Stage'] = 1
+
+        # Passing the Door
+        status_data['Info_Stage'] = 2
+        while True:
+            velocity = 100
+            if patio1_task3_stop_signal:
+                #Patio 1 done
+                current_patio = 0
+                current_task = 0
+                current_stage = 0
+                break
 
     return 0
 
