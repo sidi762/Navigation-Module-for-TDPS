@@ -22,25 +22,25 @@ sensor.set_framesize(sensor.QVGA)
 sensor.skip_frames(time = 2000)     # Wait for settings take effect.
 clock = time.clock()                # Create a clock object to track the FPS.
 
-status_data = {'Info_Task': 1,
-               'Info_Patio': 1,
-               'Info_Stage': 1,
+status_data = {'Info_Task': "1",
+               'Info_Patio': "1",
+               'Info_Stage': "1",
                'Control_Command': 0,
-               'Control_Angle': 0,
-               'Control_Velocity': 0}
+               'Control_Angle': "0",
+               'Control_Velocity': "0"}
 
-encoder_data = {'Info_Encoder_A': 0.0,
-                'Info_Encoder_B': 0.0,
-                'Info_Encoder_C': 0.0,
-                'Info_Encoder_D': 0.0}
+encoder_data = {'Info_Encoder_A': "0",
+                'Info_Encoder_B': "0",
+                'Info_Encoder_C': "0",
+                'Info_Encoder_D': "0"}
 
 master_is_ready = 0
 
 # UART using uart 1 and baud rate of 115200
-uart = pyb.UART(1, 115200)
+uart = pyb.UART(1, 9600)
 
 async def uart_messaging_json(data):
-    data_json = json.dumps([status_data])
+    data_json = json.dumps(status_data)
     uart_send_buffer = b'\xaa\x55' + len(data_json).to_bytes(1, 'big') + bytes(data_json, 'utf-8')
     print("UART sent: ", uart_send_buffer)
     print("UART len: ", len(uart_send_buffer))
@@ -92,11 +92,14 @@ async def readwrite():
         if rcv:
             print('Received: ', rcv)
             buf = last_message
-            if rcv == b'\xcc':
+            if rcv == b'\xcd':
                 # 0xcc: last message correctly received,
                 # send next message
                 buf = await uart_messaging_json(status_data)
                 last_message = buf
+            elif rcv == b'\xcc':
+                await uasyncio.sleep_ms(1)
+                continue
             elif rcv == b'\xdd':
                 # 0xdd: error in the last transmission,
                 # resend message
@@ -115,6 +118,7 @@ async def readwrite():
                     if rcvlen == 1:
                         print("Master control ready")
                         master_is_ready = 1
+                        await uasyncio.sleep_ms(1)
                         continue
                     rcvbuf = await sreader.read(rcvlen)
                     if await uart_recv_json(rcvbuf):
@@ -178,7 +182,7 @@ async def start_patio_1():
             await uasyncio.sleep_ms(1)
 
     elif current_task == 2:
-        status_data['Info_Task'] = 2
+        status_data['Info_Task'] = current_task
 
         #Turn right 90 degress
         status_data['Info_Stage'] = 1
@@ -194,7 +198,7 @@ async def start_patio_1():
 
 
     elif current_task == 3:
-        status_data['Info_Task'] = 3
+        status_data['Info_Task'] = current_task
 
         #Turn left 90 degress
         status_data['Info_Stage'] = 1
@@ -233,14 +237,17 @@ async def start_patio_2():
 
         ###turn angle
         if arrow=="left":
+            pass
             #imu.angle();
         elif arrow=="forward":
+            pass
             #imu
         elif arrow=="right":
+            pass
             #imu
-            
+
         ###moveforward by ultrasonic
-        
+
     elif current_task == 2:
         #drop the ball
         status_data['Info_Task'] = 2
@@ -249,7 +256,7 @@ async def start_patio_2():
         ###distance to 0
              #ultra
         ###drop the ball
-             
+
 
 
     elif current_task == 3:
@@ -272,7 +279,7 @@ async def main():
     while True:
         clock.tick()
         ret = 1
-        current_patio = status_data['Info_Patio']
+        current_patio = int(status_data['Info_Patio'])
         if current_patio == 1:
             ret = await start_patio_1()
             if ret == 0:
