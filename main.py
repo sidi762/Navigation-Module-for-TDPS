@@ -283,13 +283,15 @@ async def main():
         if current_patio == 1:
             ret = await start_patio_1()
             if ret == 0:
-                current_patio = 2
+                continue
         elif current_patio == 2:
             ret = await start_patio_2()
-            if ret == 0: break
+            if ret == 0:
+                continue
 
 
 loop = uasyncio.get_event_loop()
 loop.create_task(readwrite())
 loop.create_task(main())
 loop.run_forever()
+#Todo: Soft-reset (Or maybe hard-reset?)
