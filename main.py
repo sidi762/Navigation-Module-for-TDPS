@@ -14,6 +14,20 @@ from pyb import Timer
 import uasyncio
 from messaging import readwrite
 
+'''
+Pin usage:
+    - P0: UART 1 - Comm. with master control
+    - P1: UART 1 - Comm. with master control
+    - P2: HCSR04 1 trigger (not tested yet)
+    - P3: HCSR04 1 echo (not tested yet)
+    - P4: I2C 2 - BNO055 IMU
+    - P5: I2C 2 - BNO055 IMU
+    - P6: Reset Button - NOT 5V tolerant in ADC/DAC mode
+    - P7: Reserved fot possible second ultrasonic - I2C 4 avilable - Servo 1 avilable
+    - P8: Reserved fot possible second ultrasonic - I2C 4 avilable - Servo 2 avilable
+    - P9: Mode Switch
+'''
+
 RED_LED_PIN = 1
 BLUE_LED_PIN = 3
 
