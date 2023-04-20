@@ -76,8 +76,8 @@ async def start_patio_1():
         status_data['Info_Stage'] = 1
         print("Performing task 1")
         while True:
-            velocity = 100
-            control = line_tracking.calculate()
+            #velocity = 100
+            control, velocity = line_tracking.calculate()
             line = line_tracking.get_line()
             theta_err = line_tracking.get_theta_err()
             status_data['Control_Command'] = control
@@ -129,7 +129,6 @@ async def start_patio_1():
                 break
 
     return 0
-
 
 async def start_patio_2():
     status_data['Info_Patio'] = 2
@@ -184,7 +183,6 @@ async def start_patio_2():
 
     print("Patio 2 is progressing....can't wait to see:)...")
     return 0
-
 
 async def main():
     '''

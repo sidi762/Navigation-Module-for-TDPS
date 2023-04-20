@@ -27,7 +27,7 @@ class LineTracking:
                  rho_pid_p = 0.4, rho_pid_i = 0, rho_pid_d = 0,
                  rho_pid_imax = 0,
                  theta_pid_p = 0.001, theta_pid_i = 0, theta_pid_d = 0,
-                 theta_pid_imax = 0,
+                 theta_pid_imax = 0, line_mag_thrs = 3,
                  draw = False):
         """
             Class for line tracking
@@ -53,7 +53,10 @@ class LineTracking:
                         (for reducing the error of theta of the line).
                 theta_pid_i: The I factor for the theta PID controller.
                 theta_pid_d: The D factor for the theta PID controller.
-                theta_pid_imax: The imax factor for the theta PID controller.
+                theta_pid_imax: The imax factor for the theta PID
+                                controller.
+                line_mag_thrs: The threshold to determine if the line
+                               is valid.
                 draw: Set to True to draw the resulting line on the
                       captured image, defaults to False.
 
@@ -138,12 +141,27 @@ class LineTracking:
         if line is not None:
             if self._draw:
                 img.draw_line(line.line(), color=(255,255,0))
-            self._calculatedLine = line
+            self._calculated_line = line
+            self._line_magnitude = line.magnitude()
             return line
+        else:
+            # Should we return the last valid line here?
+            # Should we update the _calculated_line here?
+            self._line_magnitude = 0
+            return None
 
     def _line_error(self, line):
         if line:
+            # rho_err is greater than 0: vehicle is on the left side
+            #                            of the line, should turn right
+            # rho_err is less than 0: vehicle is on the right side
+            #                         of the line, should turn left
             rho_err = abs(line.rho())-self._center_coord
+
+            # 90 > theta_err > 0: should turn right to be parallel to
+            #                     the line
+            # 0 > theta_err > -90: should turn left to be parallel to
+            #                     the line
             if line.theta()>90:
                 theta_err = line.theta()-180
             else:
@@ -152,6 +170,10 @@ class LineTracking:
             return rho_err, theta_err
         else:
             return 0, 0
+
+    def _cilp_velocity_command(self, v):
+        if v > 100: return 100
+        if v < 0: return 0
 
     def get_theta_err(self):
         """
@@ -165,24 +187,45 @@ class LineTracking:
 
     def calculate(self):
         """
-            Returns the control factor, produced by pid for the vehicle
-            to follow the line
+            Returns the control factor and the velocity command,
+            produced by pid for the vehicle to follow the line
         """
         line = self._capture_filter_and_calculate_line()
+        magnitude = self._line_magnitude
+        magnitude_threshold = self._line_mag_thrs
+        # Todo: finetune
+        velocity_command = (magnitude - magnitude_threshold) * 10
+
+        velocity_command = self._cilp_velocity_command(velocity_command)
+        if magnitude < magnitude_threshold:
+            # Todo: action to reaquire the line
+            return 0, 10 #Slow down the vehicle when no valid line is available
+
         rho_err, theta_err = self._line_error(line)
         rho_control = self._rho_pid.get_pid(rho_err, 1)
         theta_control = self._theta_pid.get_pid(theta_err, 1)
         self._rho_control, self._theta_control = rho_control, theta_control
         control = rho_control + theta_control
         self._control = control
-        return control
+        self._velocity_command = velocity_command
+
+        return control, velocity_command
 
     def get_line(self):
         """
             Returns the detected line as a Line object.
-            Returns None if no line is detected.
+            Returns None if no line have ever been detected.
         """
-        if self._calculatedLine:
-            return self._calculatedLine
+        if self._calculated_line:
+            return self._calculated_line
         else:
             return None
+
+    def get_line_magnitude(self):
+        """
+            Returns the magnitude of the detected line.
+        """
+        if self._line_magnitude:
+            return self._line_magnitude
+        else:
+            return 0
