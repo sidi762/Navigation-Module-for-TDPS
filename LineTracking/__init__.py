@@ -72,8 +72,9 @@ class LineTracking:
         self._kernal_size = kernal_size
         self._kernal = kernal
         self._thresholds = thresholds
-        self._sensorSettings = {'pixformat': 0, 'framesize': 0}
-        self._isStarted = False
+        self._sensor_settings = {'pixformat': 0, 'framesize': 0}
+        self._is_started = False
+        self._line_mag_thrs = line_mag_thrs
         self._draw = draw
         self._rho_pid = PID(p = rho_pid_p,
                             i = rho_pid_i,
@@ -94,7 +95,7 @@ class LineTracking:
         self._set_sensor_for_line_detection()
         img = self._sensor.snapshot()
         self._center_coord = img.width() / 2
-        self._isStarted = True
+        self._is_started = True
 
     def end(self):
         """
@@ -102,10 +103,10 @@ class LineTracking:
         """
         # Resume sensor settings
         sens = self._sensor
-        sens.set_pixformat(self._sensorSettings.pixformat)
-        sens.set_framesize(self._sensorSettings.framesize)
+        sens.set_pixformat(self._sensor_settings.pixformat)
+        sens.set_framesize(self._sensor_settings.framesize)
         sens.skip_frames(time = 100)     # Wait for settings take effect.
-        self._isStarted = False
+        self._is_started = False
 
     def _set_sensor_for_line_detection(self):
         sens = self._sensor
@@ -120,8 +121,8 @@ class LineTracking:
         sens.skip_frames(time = 100)     # Wait for settings take effect.
 
     def _store_sensor_settings(self):
-        self._sensorSettings['pixformat'] = self._sensor.get_pixformat()
-        self._sensorSettings['framesize'] = self._sensor.get_framesize()
+        self._sensor_settings['pixformat'] = self._sensor.get_pixformat()
+        self._sensor_settings['framesize'] = self._sensor.get_framesize()
 
 
     def _apply_filter(self, img, threshold=True):
@@ -131,7 +132,7 @@ class LineTracking:
         return img
 
     def _capture_filter_and_calculate_line(self):
-        if not self._isStarted:
+        if not self._is_started:
             print("Error: Set the camera first by calling LineTracking.start()")
             return 0
         img = self._sensor.snapshot()

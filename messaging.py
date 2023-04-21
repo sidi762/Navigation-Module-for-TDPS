@@ -1,6 +1,5 @@
 #
 # OpenMV Software for TDPS self-driving vehicle project
-# The Line Tracking Module
 # UART Messaging
 # Sidi Liang, 2023
 #
