@@ -37,17 +37,18 @@ sensor.set_framesize(sensor.QVGA)
 sensor.skip_frames(time = 2000)     # Wait for settings take effect.
 clock = time.clock()                # Create a clock object to track the FPS.
 
-status_data = {'Info_Task': "1",
-               'Info_Patio': "1",
-               'Info_Stage': "1",
+status_data = {'Info_Task': 1,
+               'Info_Patio': 1,
+               'Info_Stage': 1,
                'Control_Command': 0,
-               'Control_Angle': "0",
-               'Control_Velocity': "0"}
+               'Control_Angle': 0,
+               'Control_Velocity': 0}
 
 master_is_ready = 0
 
 # UART using uart 1 and baud rate of 115200
-uart = pyb.UART(1, 9600)
+uart = pyb.UART(1, 115200)
+messaging = OpenMV_MessageHandler(uart, status_data)
 
 # I2C
 i2c = I2C(2, freq=400000)
@@ -191,7 +192,7 @@ async def main():
     while True:
         clock.tick()
         ret = 1
-        current_patio = int(status_data['Info_Patio'])
+        current_patio = status_data['Info_Patio']
         if current_patio == 1:
             ret = await start_patio_1()
             if ret == 0:
