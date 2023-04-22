@@ -84,6 +84,8 @@ class LineTracking:
                               i = theta_pid_i,
                               d = theta_pid_d,
                               imax = theta_pid_imax)
+        self._theta_err = 0
+        self._rho_err = 0
 
 
     def start(self):
@@ -148,11 +150,12 @@ class LineTracking:
         else:
             # Should we return the last valid line here?
             # Should we update the _calculated_line here?
+            self._calculated_line = None
             self._line_magnitude = 0
             return None
 
     def _line_error(self, line):
-        if line:
+        if line is not None:
             # rho_err is greater than 0: vehicle is on the left side
             #                            of the line, should turn right
             # rho_err is less than 0: vehicle is on the right side
