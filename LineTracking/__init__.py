@@ -170,11 +170,16 @@ class LineTracking:
             self._rho_err, self._theta_err = rho_err, theta_err
             return rho_err, theta_err
         else:
+            self._rho_err, self._theta_err = 0, 0
             return 0, 0
 
     def _cilp_velocity_command(self, v):
-        if v > 100: return 100
-        if v < 0: return 0
+        if v == None:
+            return 0
+        else:
+            if v > 100: return 100
+            elif v < 0: return 0
+            else: return v
 
     def get_theta_err(self):
         """
@@ -195,7 +200,7 @@ class LineTracking:
         magnitude = self._line_magnitude
         magnitude_threshold = self._line_mag_thrs
         # Todo: finetune
-        velocity_command = (magnitude - magnitude_threshold) * 10
+        velocity_command = (magnitude - magnitude_threshold) * 2
 
         velocity_command = self._cilp_velocity_command(velocity_command)
         if magnitude < magnitude_threshold:
