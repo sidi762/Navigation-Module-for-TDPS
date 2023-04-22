@@ -12,7 +12,7 @@ from LineTracking import LineTracking, dead_reckoning
 from time import sleep_ms
 from pyb import Timer
 import uasyncio
-from messaging import readwrite
+from messaging import OpenMV_MessageHandler
 
 '''
 GPIO Pin usage:
@@ -203,7 +203,7 @@ async def main():
 
 
 loop = uasyncio.get_event_loop()
-loop.create_task(readwrite())
+loop.create_task(messaging.readwrite())
 loop.create_task(main())
 loop.run_forever()
 #Todo: Soft-reset (Or maybe hard-reset?)
