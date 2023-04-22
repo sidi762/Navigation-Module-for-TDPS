@@ -203,8 +203,10 @@ async def main():
                 continue
 
 
-loop = uasyncio.get_event_loop()
-loop.create_task(messaging.readwrite())
-loop.create_task(main())
-loop.run_forever()
 #Todo: Soft-reset (Or maybe hard-reset?)
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:  # Trapping this is optional
+    print('Interrupted')  # or pass
+finally:
+    asyncio.new_event_loop()  # Clear retained state
