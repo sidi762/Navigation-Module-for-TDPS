@@ -205,8 +205,8 @@ async def main():
 
 #Todo: Soft-reset (Or maybe hard-reset?)
 try:
-    asyncio.run(main())
+    uasyncio.run(main())
 except KeyboardInterrupt:  # Trapping this is optional
     print('Interrupted')  # or pass
 finally:
-    asyncio.new_event_loop()  # Clear retained state
+    uasyncio.new_event_loop()  # Clear retained state

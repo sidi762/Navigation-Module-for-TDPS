@@ -13,7 +13,7 @@ class OpenMV_MessageHandler:
         self.status_data_ref = status_data_ref
         self.swriter = uasyncio.StreamWriter(uart, {})
         self.sreader = uasyncio.StreamReader(uart)
-        self._task = asyncio.create_task(self.readwrite())
+        self._task = uasyncio.create_task(self.readwrite())
 
 
     _encoder_data = {'Info_Encoder_A': "0",
