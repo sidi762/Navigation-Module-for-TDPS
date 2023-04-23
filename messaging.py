@@ -33,10 +33,10 @@ class OpenMV_MessageHandler:
 
     async def _update_encoder_data(self, data):
         try:
-            encoder_data['Info_Encoder_A'] = data['Info_Encoder_A']
-            encoder_data['Info_Encoder_B'] = data['Info_Encoder_B']
-            encoder_data['Info_Encoder_C'] = data['Info_Encoder_C']
-            encoder_data['Info_Encoder_D'] = data['Info_Encoder_D']
+            self._encoder_data['Info_Encoder_A'] = data['Info_Encoder_A']
+            self._encoder_data['Info_Encoder_B'] = data['Info_Encoder_B']
+            self._encoder_data['Info_Encoder_C'] = data['Info_Encoder_C']
+            self._encoder_data['Info_Encoder_D'] = data['Info_Encoder_D']
         except:
             return False
         return True

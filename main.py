@@ -47,7 +47,7 @@ status_data = {'Info_Task': 1,
 master_is_ready = 0
 
 # UART using uart 1 and baud rate of 115200
-uart = pyb.UART(1, 115200)
+uart = pyb.UART(1, baudrate=115200, read_buf_len=512 )
 messaging = OpenMV_MessageHandler(uart, status_data)
 
 # I2C
