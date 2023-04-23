@@ -139,5 +139,5 @@ class OpenMV_MessageHandler:
                     await uasyncio.sleep_ms(5)
                 #End If
             #End While
-        except asyncio.CancelledError:
+        except uasyncio.CancelledError:
             print('Comm. task cancelled.')
