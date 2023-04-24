@@ -9,10 +9,10 @@ import json, uasyncio
 class OpenMV_MessageHandler:
     def __init__(self, uart, status_data_ref):
         self._uart = uart
-        self.last_message = 'nil'
-        self.status_data_ref = status_data_ref
-        self.swriter = uasyncio.StreamWriter(uart, {})
-        self.sreader = uasyncio.StreamReader(uart)
+        self._last_message = 'nil'
+        self._status_data_ref = status_data_ref
+        self._swriter = uasyncio.StreamWriter(uart, {})
+        self._sreader = uasyncio.StreamReader(uart)
         self._task = uasyncio.create_task(self.readwrite())
 
 
@@ -60,28 +60,30 @@ class OpenMV_MessageHandler:
 
     def get_encoder_data(self):
         '''
-        Returns a copy of the encoder data
+            Returns a copy of the encoder data
         '''
         return self._encoder_data.copy()
 
     def cancel(self):
+        '''
+            Cancels the coroutine
+        '''
         self._task.cancel()
 
     async def readwrite(self):
         '''
             Coroutine handling UART communication with the master control.
         '''
-        swriter = self.swriter
-        sreader = self.sreader
+        swriter = self._swriter
+        sreader = self._sreader
 
         try:
             while True:
-                last_message = self.last_message
-                status_data = self.status_data_ref
+                last_message = self._last_message
+                status_data = self._status_data_ref
                 print('Waiting for incoming message...')
                 rcvbuf = ''
                 rcv = await sreader.read(1)
-                #rcv = self._uart.read(1)
                 if rcv:
                     print('Received: ', rcv)
                     buf = last_message
@@ -89,7 +91,7 @@ class OpenMV_MessageHandler:
                         # 0xcd: last message correctly received,
                         #       openMV should send next message
                         buf = await self._uart_messaging_json(status_data)
-                        self.last_message = buf
+                        self._last_message = buf
                     elif rcv == b'\xcc':
                         # 0xcd: last message correctly received
                         await uasyncio.sleep_ms(1)
@@ -103,9 +105,6 @@ class OpenMV_MessageHandler:
                         rcv = await sreader.read(1)
                         print('Received: ', rcv)
                         if rcv == b'\x55':
-                            # while rcv != b'\xbb':
-                            #     rcv = await sreader.read(1)
-                            #     rcvbuf += rcv
                             rcvlen = await sreader.read(1)
                             rcvlen = int.from_bytes(rcvlen, 'big')
                             print("rcvlen: ", rcvlen)

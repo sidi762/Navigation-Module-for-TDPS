@@ -129,7 +129,11 @@ class LineTracking:
 
     def _apply_filter(self, img, threshold=True):
         #img.gamma_corr(gamma=1.0)
-        img.morph(self._kernal_size, self._kernal, threshold=threshold, offset=2, invert=True)
+        img.morph(self._kernal_size, \
+                  self._kernal, \
+                  threshold=threshold, \
+                  offset=2, \
+                  invert=True)
         #img.binary(self._thresholds)
         img.erode(1, threshold = 3)
         return img
