@@ -21,6 +21,173 @@ from odometer import Odometer
 from bno055 import BNO055, AXIS_P7
 from pid import PID
 
+class Navigator:
+    def __init__(self, imu，turn_pid_p = 0.01,
+                 turn_pid_i = 0.005, turn_pid_d = 0,
+                 turn_pid_imax = 0):
+        self._imu = imu
+        self._turn_pid = PID(p = turn_pid_p,
+                             i = turn_pid_i,
+                             d = turn_pid_d,
+                             imax = turn_pid_imax)
+
+
+    _target_heading = 0
+    _current_heading = 0
+    _is_navigating = False
+    _control_output = 0
+
+    def _update_current_heading_from_imu(self, imu):
+        yaw, roll, pitch = imu.euler()
+        #Note: Need to revisit this for the potential issues with calibration
+        self._current_heading = yaw
+        return yaw
+
+
+    def _clip_turn_error(self, turn_err):
+        if turn_err < 0:
+            turn_err += 360
+        return turn_err
+
+    def _calculate_direction(self, current_heading, target_heading):
+        turn_err = 0
+        turn_err_right = target_heading  - current_heading
+        self._clip_turn_error(turn_err_right)
+        turn_err_left = current_heading - target_heading
+        self._clip_turn_error(turn_err_left)
+        if turn_err_right <= turn_err_left:
+            # Turn right
+            return 1
+        else:
+            # Turn left
+            return -1
+
+    def navigate(self, target_heading = self._target_heading):
+        '''
+            Navigate using PID
+            Returns the control output
+        '''
+        if self._imu:
+            current_heading = _update_current_heading_from_imu(self._imu)
+            direction = self._calculate_direction(current_heading, target_heading)
+            turn_err = direction * (target_heading  - current_heading)
+            turn_control = self._turn_pid.get_pid(turn_err, 1)
+            self._control_output = turn_control
+            return turn_control
+        else:
+            return 0
+
+    def turn_to_heading(self, target_heading, direction = 0):
+        '''
+            Turn to a given heading
+            Turns right for direction = 1, left for direction = -1,
+            auto for direction = 0
+            Returns when the turn is completed
+        '''
+        current_heading = self._update_current_heading_from_imu()
+        if direction == 0:
+            direction = self._calculate_direction(current_heading, target_heading)
+
+        degress = math.abs(target_heading - current_heading)
+        self.turn_degress(degress, direction)
+
+        return 0
+
+    def turn_degrees(self, degrees, direction = 1):
+        '''
+            Turn for a given angle
+            degress should be positive
+            Turns right for direction = 1, left for direction = -1
+            Returns when the turn is completed
+        '''
+        current_heading = self._update_current_heading_from_imu()
+        target_heading = current_heading + degrees
+        self._target_heading = target_heading
+        print("Turning heading ", target_heading, "...")
+        while target_heading != current_heading:
+            turn_err = direction * (target_heading  - current_heading)
+            if turn_err < 0:
+                turn_err += 360
+            turn_control = self._turn_pid.get_pid(turn_err, 1)
+            self._control_output = turn_control
+            current_heading = self._update_current_heading_from_imu()
+
+        print("Turn completed, current heading ", current_heading)
+        return 0
+
+    def turn_right_degrees(self, degrees):
+        '''
+            Turn right for a given angle
+            Returns when the turn is completed
+        '''
+        self.turn_degrees(degrees, 1)
+        return 0
+
+    def turn_left_degrees(self, degrees):
+        '''
+            Turn left for a given angle
+            Returns when the turn is completed
+        '''
+        self.turn_degrees(degrees, -1)
+        return 0
+
+    def turn_right_90(self):
+        '''
+            Turn right for 90 degrees
+        '''
+        self.turn_degrees(90, 1)
+        return 0
+
+
+    def turn_left_90(self):
+        '''
+            Turn left for 90 degress
+        '''
+        self.turn_degrees(90, -1)
+        return 0
+
+    async def _navigate_async(self):
+        '''
+            Navigate using PID
+            This is a coroutine
+        '''
+        while self._is_navigating:
+            self._control_output = self._navigate()
+            await uasyncio.sleep(0)
+
+        return 0
+
+    def start_async(self):
+        '''
+            Check if imu is avilable and start the navigation
+        '''
+        if self._imu:
+            self._is_navigating = True
+            self._task = uasyncio.create_task(self._navigate_async())
+            return 1
+        else:
+            self._is_navigating = False
+            return 0
+
+
+    def end_async(self):
+        '''
+            End the navigation and do some cleanups if necessary
+        '''
+        self._is_navigating = False
+
+    def set_target_heading(self, heading):
+        self._target_heading = heading
+
+    def get_target_heading(self):
+        return self._target_heading
+
+    def get_current_heading(self):
+        return self._current_heading
+
+    def get_control_output(self):
+        return self._control_output
+        
 class LineTracking:
 
     def __init__(self, sensor, kernal_size = 1,
