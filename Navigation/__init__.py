@@ -43,7 +43,6 @@ class Navigator:
         self._current_heading = yaw
         return yaw
 
-
     def _clip_turn_error(self, turn_err):
         if turn_err < 0:
             turn_err += 360
@@ -138,7 +137,6 @@ class Navigator:
         self.turn_degrees(90, 1)
         return 0
 
-
     def turn_left_90(self):
         '''
             Turn left for 90 degress
@@ -169,7 +167,6 @@ class Navigator:
             self._is_navigating = False
             return 0
 
-
     def end_async(self):
         '''
             End the navigation and do some cleanups if necessary
@@ -187,7 +184,7 @@ class Navigator:
 
     def get_control_output(self):
         return self._control_output
-        
+
 class LineTracking:
 
     def __init__(self, sensor, kernal_size = 1,
