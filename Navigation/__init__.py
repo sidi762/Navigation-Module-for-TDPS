@@ -156,7 +156,7 @@ class Navigator:
             This is a coroutine
         '''
         while self._is_navigating:
-            self._control_output = self._navigate()
+            self._control_output = self.navigate()
             await uasyncio.sleep(0)
 
         return 0
