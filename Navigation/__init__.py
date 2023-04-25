@@ -22,10 +22,12 @@ from bno055 import BNO055, AXIS_P7
 from pid import PID
 
 class Navigator:
-    def __init__(self, imu，turn_pid_p = 0.01,
-                 turn_pid_i = 0.005, turn_pid_d = 0,
-                 turn_pid_imax = 0):
+
+    def __init__(self, imu, status_data_ref,
+                 turn_pid_p = 0.01, turn_pid_i = 0.005,
+                 turn_pid_d = 0, turn_pid_imax = 0):
         self._imu = imu
+        self._status_data_ref = status_data_ref
         self._turn_pid = PID(p = turn_pid_p,
                              i = turn_pid_i,
                              d = turn_pid_d,
@@ -36,6 +38,9 @@ class Navigator:
     _current_heading = 0
     _is_navigating = False
     _control_output = 0
+
+    def _update_status_data(self, control):
+        self._status_data_ref['Control_Command'] = control
 
     def _update_current_heading_from_imu(self, imu):
         yaw, roll, pitch = imu.euler()
@@ -109,6 +114,7 @@ class Navigator:
                 turn_err += 360
             turn_control = self._turn_pid.get_pid(turn_err, 1)
             self._control_output = turn_control
+            self._update_status_data(turn_control)
             current_heading = self._update_current_heading_from_imu()
 
         print("Turn completed, current heading ", current_heading)
