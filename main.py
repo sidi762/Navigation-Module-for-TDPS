@@ -8,7 +8,7 @@ import sensor, image, time, pyb
 from machine import Pin, I2C
 from bno055 import BNO055, AXIS_P7
 from HCSR04 import HCSR04
-from LineTracking import LineTracking, dead_reckoning
+from Navigation import LineTracking, DeadReckoning, Odometer
 from time import sleep_ms
 from pyb import Timer
 import uasyncio
@@ -16,8 +16,8 @@ from messaging import OpenMV_MessageHandler
 
 '''
 GPIO Pin usage:
-    - P0: UART 1 RX - Comm. with master control
-    - P1: UART 1 TX - Comm. with master control
+    - P0: UART 1 RX - Comm. with master control (Master TX is C6)
+    - P1: UART 1 TX - Comm. with master control (Master RX is C7)
     - P2: HCSR04 1 trigger (not tested yet)
     - P3: HCSR04 1 echo (not tested yet)
     - P4: I2C 2 SCL - BNO055 IMU
@@ -47,7 +47,7 @@ status_data = {'Info_Task': 1,
 master_is_ready = 0
 
 # UART using uart 1 and baud rate of 115200
-uart = pyb.UART(1, baudrate=115200, read_buf_len=512 )
+uart = pyb.UART(1, baudrate=9600, read_buf_len=512)
 messaging = OpenMV_MessageHandler(uart, status_data)
 
 # I2C
@@ -58,12 +58,14 @@ try:
 except:
     pyb.LED(RED_LED_PIN).on()
 
-dr = dead_reckoning.DeadReckoning()
+dr = DeadReckoning()
 
 line_tracking = LineTracking(sensor, draw=True)
+odometer = Odometer()
 #line_tracking.start()
 
 async def start_patio_1():
+    last_odo = 0
     line_tracking.start()
     status_data['Info_Patio'] = 1
     print("In Patio 1")
@@ -84,10 +86,20 @@ async def start_patio_1():
             status_data['Control_Command'] = control
             status_data['Control_Angle'] = theta_err
             status_data['Control_Velocity'] = velocity
+            encoder_data = messaging.get_encoder_data()
+            await uasyncio.sleep(0)
+            #odometer.update_with_encoder_data(int(encoder_data['Info_Encoder_A']),\
+            #                              int(encoder_data['Info_Encoder_B']))
+            #await uasyncio.sleep(0)
+            #odo = odometer.get_odometer()
+            #if odo > last_odo:
+            #    print(odo)
+            #    last_odo = odo
+
             if imu:
                 dr.dead_reckoning(imu)
-                # print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
-                # print("Position m: ", dr.position_x, dr.position_y, dr.position_z)
+                #print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
+                #print("Position m: ", dr.position_x, dr.position_y, dr.position_z)
 
             if patio1_task1_stop_signal:
                 velocity = 0
