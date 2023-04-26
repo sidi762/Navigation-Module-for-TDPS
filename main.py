@@ -8,7 +8,7 @@ import sensor, image, time, pyb
 from machine import Pin, I2C
 from bno055 import BNO055, AXIS_P7
 from HCSR04 import HCSR04
-from Navigation import LineTracking, DeadReckoning, Odometer
+from Navigation import Navigator, LineTracking, DeadReckoning, Odometer
 from time import sleep_ms
 from pyb import Timer
 import uasyncio
