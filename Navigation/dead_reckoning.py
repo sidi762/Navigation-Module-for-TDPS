@@ -7,12 +7,12 @@
 
 
 
-import time
+import pyb
 
 class DeadReckoning:
 
     def __init__(self):
-        self._time_init = time.time_ns() / 1000000 # miliseconds
+        self._time_init = pyb.millis() # miliseconds
         print("Dead Reckoning initialized at ", self._time_init)
         self.time_last_dead_reckoning = 0
         self.v_x_last, self.v_y_last, self.v_z_last = 0, 0, 0
@@ -29,7 +29,7 @@ class DeadReckoning:
         sample_count = 10
         no_acc_count = 0
         no_movement_threshold = 4
-        time_now_dead_reckoning = time.time_ns() / 1000000 #ms
+        time_now_dead_reckoning = pyb.millis() #ms
         time_after_init = time_now_dead_reckoning - self._time_init
         if  time_after_init < 3000:
             #Wait for calibration

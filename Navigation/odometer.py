@@ -7,12 +7,12 @@
 
 
 
-import time
+import pyb
 
 class Odometer:
 
     def __init__(self):
-        self._time_last_update = 0
+        self._time_last_update = pyb.millis()
         self._encoder_A = 0
         self._encoder_B = 0
         self._odometer = 0
@@ -24,7 +24,7 @@ class Odometer:
         self._update()
 
     def _update(self):
-        time_now = time.time_ns() / 1000000 #ms
+        time_now = pyb.millis() #ms
         interval = (time_now - self._time_last_update) / 1000 #seconds
         v_dx = self._encoder_A # Placeholder
         self._odometer += v_dx * interval
