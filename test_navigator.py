@@ -27,9 +27,13 @@ messaging = OpenMV_MessageHandler(uart, status_data)
 status_data = {'Info_Task': 1,
                'Info_Patio': 1,
                'Info_Stage': 1,
-               'Control_Command': 0,
+               'Control_PID': 0,
                'Control_Angle': 0,
-               'Control_Velocity': 0}
+               'Control_Velocity': 0,
+               'Control_Cam_Pitch': 0, #0/1/2 0 for patio 1
+               'Control_Ball': 0, # 1 for releasing the ball
+               'Control_Comm': 0 # 1 for starting wireless communication
+               }
 
 imu = None
 

@@ -21,6 +21,10 @@ class OpenMV_MessageHandler:
                      'Info_Encoder_C': "0",
                      'Info_Encoder_D': "0"}
 
+    _feedback_data = {'Info_Cam_Pitch': 0,
+                      'Info_Ball': 0,
+                      'Info_Comm': 0}
+
     async def _uart_messaging_json(self, status_data):
         data_json = json.dumps(status_data)
         uart_send_buffer = b'\xaa\x55' \
@@ -41,9 +45,19 @@ class OpenMV_MessageHandler:
             return False
         return True
 
+    async def _update_feedback_data(self, data):
+        try:
+            self._feedback_data['Info_Cam_Pitch'] = data['Info_Cam_Pitch']
+            self._feedback_data['Info_Ball'] = data['Info_Ball']
+            self._feedback_data['Info_Comm'] = data['Info_Comm']
+        except:
+            return False
+        return True
+
     async def _uart_recv_json(self, rcv_buffer):
         data = ''
         print("Processing rcvbuffer: ", rcv_buffer)
+        success = True
         try:
             data = json.loads(rcv_buffer)
         except ValueError as err:
@@ -51,18 +65,32 @@ class OpenMV_MessageHandler:
             print("Message causing error: ", rcv_buffer)
             return False
 
-        if await self._update_encoder_data(data):
-            return True
-        else:
-            print("Encoder_data failed to update, check data")
+        ret = await self._update_encoder_data(data)
+        if not ret:
+            print("encoder data failed to update, check data")
             print("Message causing error: ", data)
-            return False
+            success = False
+
+        ret = await self._update_feedback_data(data)
+        if not ret:
+            print("feedback data failed to update, check data")
+            print("Message causing error: ", data)
+            success = False
+
+        return success
+
 
     def get_encoder_data(self):
         '''
             Returns a copy of the encoder data
         '''
         return self._encoder_data.copy()
+
+    def get_feedback_data(self):
+        '''
+            Returns a copy of the encoder data
+        '''
+        return self._feedback_data.copy()
 
     def cancel(self):
         '''

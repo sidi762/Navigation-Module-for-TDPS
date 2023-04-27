@@ -40,9 +40,13 @@ clock = time.clock()                # Create a clock object to track the FPS.
 status_data = {'Info_Task': 1,
                'Info_Patio': 1,
                'Info_Stage': 1,
-               'Control_Command': 0,
+               'Control_PID': 0,
                'Control_Angle': 0,
-               'Control_Velocity': 0}
+               'Control_Velocity': 0,
+               'Control_Cam_Pitch': 0, #0/1/2 0 for patio 1
+               'Control_Ball': 0, # 1 for releasing the ball
+               'Control_Comm': 0 # 1 for starting wireless communication
+               }
 
 master_is_ready = 0
 
@@ -83,7 +87,7 @@ async def start_patio_1():
             control, velocity = line_tracking.calculate()
             line = line_tracking.get_line()
             theta_err = line_tracking.get_theta_err()
-            status_data['Control_Command'] = control
+            status_data['Control_PID'] = control
             status_data['Control_Angle'] = theta_err
             status_data['Control_Velocity'] = velocity
             encoder_data = messaging.get_encoder_data()

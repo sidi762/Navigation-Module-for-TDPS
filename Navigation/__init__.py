@@ -40,7 +40,7 @@ class Navigator:
     _control_output = 0
 
     def _update_status_data(self, control):
-        self._status_data_ref['Control_Command'] = control
+        self._status_data_ref['Control_PID'] = control
 
     def _update_current_heading_from_imu(self, imu):
         yaw, roll, pitch = imu.euler()
