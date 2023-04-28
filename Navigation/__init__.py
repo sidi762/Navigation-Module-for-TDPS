@@ -24,8 +24,8 @@ from pid import PID
 class Navigator:
 
     def __init__(self, imu, status_data_ref,
-                 turn_pid_p = 0.01, turn_pid_i = 0.005,
-                 turn_pid_d = 0, turn_pid_imax = 0):
+                 turn_pid_p = 0.1, turn_pid_i = 0.05,
+                 turn_pid_d = 0.01, turn_pid_imax = 0):
         self._imu = imu
         self._status_data_ref = status_data_ref
         self._turn_pid = PID(p = turn_pid_p,
@@ -46,6 +46,7 @@ class Navigator:
         yaw, roll, pitch = imu.euler()
         #Note: Need to revisit this for the potential issues with calibration
         self._current_heading = yaw
+        #print("Current heading: ", yaw)
         return yaw
 
     def _clip_turn_error(self, turn_err):
@@ -53,73 +54,89 @@ class Navigator:
             turn_err += 360
         return turn_err
 
-    def _calculate_direction(self, current_heading, target_heading):
-        turn_err = 0
+    def _calculate_right_error(self, current_heading, target_heading):
         turn_err_right = target_heading  - current_heading
-        self._clip_turn_error(turn_err_right)
-        turn_err_left = current_heading - target_heading
-        self._clip_turn_error(turn_err_left)
+        return self._clip_turn_error(turn_err_right)
+
+    def _calculate_left_error(self, current_heading, target_heading):
+        turn_err_left = current_heading  - target_heading
+        return self._clip_turn_error(turn_err_left)
+
+    def _calculate_direction_and_err(self, current_heading, target_heading):
+        turn_err = 0
+        turn_err_right = self._calculate_right_error(current_heading, target_heading)
+        turn_err_left = self._calculate_left_error(current_heading, target_heading)
         if turn_err_right <= turn_err_left:
             # Turn right
-            return 1
+            return 1, turn_err_right
         else:
             # Turn left
-            return -1
+            return -1, -turn_err_left
 
-    def navigate(self, target_heading = None):
+    def calculate_pid(self, target_heading = None, direction = 0):
         '''
             Navigate using PID
             Returns the control output
         '''
-        if not target_heading:
+        if target_heading == None:
             target_heading = self._target_heading
 
         if self._imu:
             current_heading = self._update_current_heading_from_imu(self._imu)
-            direction = self._calculate_direction(current_heading, target_heading)
-            turn_err = direction * (target_heading  - current_heading)
+            if direction == 0:
+                # Automatically determine direction
+                direction, turn_err = self._calculate_direction_and_err(current_heading, target_heading)
+            elif direction == 1:
+                # Turn right
+                turn_err = self._calculate_right_error(current_heading, target_heading)
+            elif direction == -1:
+                # Turn left
+                turn_err = -self._calculate_left_error(current_heading, target_heading)
+            else:
+                print("Error: specified direction is not valid (should \
+                       be one of 0, 1, or -1, given ", direction, ").")
+                return 0
+
             turn_control = self._turn_pid.get_pid(turn_err, 1)
             self._control_output = turn_control
             return turn_control
         else:
             return 0
 
-    def turn_to_heading(self, target_heading, direction = 0):
+    async def turn_to_heading(self, target_heading, direction = 0):
         '''
             Turn to a given heading
             Turns right for direction = 1, left for direction = -1,
             auto for direction = 0
             Returns when the turn is completed
+            This is a coroutine so that the command message
+            can be sent to the master control
         '''
         current_heading = self._update_current_heading_from_imu(self._imu)
-        if direction == 0:
-            direction = self._calculate_direction(current_heading, target_heading)
-
-        degress = abs(target_heading - current_heading)
-        self.turn_degress(degress, direction)
+        while target_heading != current_heading:
+            turn_control = self.calculate_pid(target_heading, direction)
+            self._update_status_data(turn_control)
+            current_heading = self._update_current_heading_from_imu(self._imu)
+            await asyncio.sleep(0)
 
         return 0
 
     def turn_degrees(self, degrees, direction = 1):
         '''
             Turn for a given angle
-            degress should be positive
+            degrees should be positive
             Turns right for direction = 1, left for direction = -1
             Returns when the turn is completed
         '''
         current_heading = self._update_current_heading_from_imu(self._imu)
-        target_heading = current_heading + degrees
+        target_heading = current_heading + direction * degrees
+        if target_heading >= 360:
+            target_heading -= 360
+        elif target_heading < 0:
+            target_heading += 360
         self._target_heading = target_heading
         print("Turning heading ", target_heading, "...")
-        while target_heading != current_heading:
-            turn_err = direction * (target_heading  - current_heading)
-            if turn_err < 0:
-                turn_err += 360
-            turn_control = self._turn_pid.get_pid(turn_err, 1)
-            self._control_output = turn_control
-            self._update_status_data(turn_control)
-            current_heading = self._update_current_heading_from_imu(self._imu)
-
+        await self.turn_to_heading(target_heading, direction)
         print("Turn completed, current heading ", current_heading)
         return 0
 
@@ -148,7 +165,7 @@ class Navigator:
 
     def turn_left_90(self):
         '''
-            Turn left for 90 degress
+            Turn left for 90 degrees
         '''
         self.turn_degrees(90, -1)
         return 0
@@ -159,8 +176,10 @@ class Navigator:
             This is a coroutine
         '''
         while self._is_navigating:
-            self._control_output = self.navigate()
-            await uasyncio.sleep(0)
+            await uasyncio.sleep_ms(1)
+            control_output = self.calculate_pid(self._target_heading)
+            self._update_status_data(control_output)
+            self._control_output = control_output
 
         return 0
 
