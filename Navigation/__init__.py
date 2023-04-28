@@ -16,8 +16,8 @@
 #thresholds = [(100, 255)]
 
 import image, time, uasyncio
-from dead_reckoning import DeadReckoning
-from odometer import Odometer
+from Navigation.dead_reckoning import DeadReckoning
+from Navigation.odometer import Odometer
 from bno055 import BNO055, AXIS_P7
 from pid import PID
 
@@ -66,13 +66,16 @@ class Navigator:
             # Turn left
             return -1
 
-    def navigate(self, target_heading = self._target_heading):
+    def navigate(self, target_heading = None):
         '''
             Navigate using PID
             Returns the control output
         '''
+        if not target_heading:
+            target_heading = self._target_heading
+
         if self._imu:
-            current_heading = _update_current_heading_from_imu(self._imu)
+            current_heading = self._update_current_heading_from_imu(self._imu)
             direction = self._calculate_direction(current_heading, target_heading)
             turn_err = direction * (target_heading  - current_heading)
             turn_control = self._turn_pid.get_pid(turn_err, 1)
@@ -88,11 +91,11 @@ class Navigator:
             auto for direction = 0
             Returns when the turn is completed
         '''
-        current_heading = self._update_current_heading_from_imu()
+        current_heading = self._update_current_heading_from_imu(self._imu)
         if direction == 0:
             direction = self._calculate_direction(current_heading, target_heading)
 
-        degress = math.abs(target_heading - current_heading)
+        degress = abs(target_heading - current_heading)
         self.turn_degress(degress, direction)
 
         return 0
@@ -104,7 +107,7 @@ class Navigator:
             Turns right for direction = 1, left for direction = -1
             Returns when the turn is completed
         '''
-        current_heading = self._update_current_heading_from_imu()
+        current_heading = self._update_current_heading_from_imu(self._imu)
         target_heading = current_heading + degrees
         self._target_heading = target_heading
         print("Turning heading ", target_heading, "...")
@@ -115,7 +118,7 @@ class Navigator:
             turn_control = self._turn_pid.get_pid(turn_err, 1)
             self._control_output = turn_control
             self._update_status_data(turn_control)
-            current_heading = self._update_current_heading_from_imu()
+            current_heading = self._update_current_heading_from_imu(self._imu)
 
         print("Turn completed, current heading ", current_heading)
         return 0
