@@ -24,8 +24,8 @@ from pid import PID
 class Navigator:
 
     def __init__(self, imu, status_data_ref,
-                 turn_pid_p = 0.1, turn_pid_i = 0.05,
-                 turn_pid_d = 0.01, turn_pid_imax = 0):
+                 turn_pid_p = 0.4, turn_pid_i = 0.005,
+                 turn_pid_d = 0.005, turn_pid_imax = 0):
         self._imu = imu
         self._status_data_ref = status_data_ref
         self._turn_pid = PID(p = turn_pid_p,
@@ -44,7 +44,8 @@ class Navigator:
 
     def _update_current_heading_from_imu(self, imu):
         yaw, roll, pitch = imu.euler()
-        #Note: Need to revisit this for the potential issues with calibration
+        # Note: Might need to revisit this for the
+        # potential issues with calibration
         self._current_heading = yaw
         #print("Current heading: ", yaw)
         return yaw
@@ -54,18 +55,20 @@ class Navigator:
             turn_err += 360
         return turn_err
 
-    def _calculate_right_error(self, current_heading, target_heading):
+    def _get_r_err(self, current_heading, target_heading):
         turn_err_right = target_heading  - current_heading
         return self._clip_turn_error(turn_err_right)
 
-    def _calculate_left_error(self, current_heading, target_heading):
+    def _get_l_err(self, current_heading, target_heading):
         turn_err_left = current_heading  - target_heading
         return self._clip_turn_error(turn_err_left)
 
-    def _calculate_direction_and_err(self, current_heading, target_heading):
+    def _get_dir_and_err(self, current_heading, target_heading):
+        # Calculate and returns the optimal direction and
+        # the angle to turn in this direction
         turn_err = 0
-        turn_err_right = self._calculate_right_error(current_heading, target_heading)
-        turn_err_left = self._calculate_left_error(current_heading, target_heading)
+        turn_err_right = self._get_r_err(current_heading, target_heading)
+        turn_err_left = self._get_l_err(current_heading, target_heading)
         if turn_err_right <= turn_err_left:
             # Turn right
             return 1, turn_err_right
@@ -85,13 +88,14 @@ class Navigator:
             current_heading = self._update_current_heading_from_imu(self._imu)
             if direction == 0:
                 # Automatically determine direction
-                direction, turn_err = self._calculate_direction_and_err(current_heading, target_heading)
+                direction, turn_err = self._get_dir_and_err(current_heading,
+                                                            target_heading)
             elif direction == 1:
                 # Turn right
-                turn_err = self._calculate_right_error(current_heading, target_heading)
+                turn_err = self._get_r_err(current_heading, target_heading)
             elif direction == -1:
                 # Turn left
-                turn_err = -self._calculate_left_error(current_heading, target_heading)
+                turn_err = -self._get_l_err(current_heading, target_heading)
             else:
                 print("Error: specified direction is not valid (should \
                        be one of 0, 1, or -1, given ", direction, ").")
@@ -138,22 +142,6 @@ class Navigator:
         print("Turning heading ", target_heading, "...")
         await self.turn_to_heading(target_heading, direction)
         print("Turn completed, current heading ", current_heading)
-        return 0
-
-    def turn_right_degrees(self, degrees):
-        '''
-            Turn right for a given angle
-            Returns when the turn is completed
-        '''
-        self.turn_degrees(degrees, 1)
-        return 0
-
-    def turn_left_degrees(self, degrees):
-        '''
-            Turn left for a given angle
-            Returns when the turn is completed
-        '''
-        self.turn_degrees(degrees, -1)
         return 0
 
     def turn_right_90(self):
