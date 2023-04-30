@@ -9,6 +9,8 @@
     before running this test.
 '''
 import sensor, image, time, pyb, uasyncio
+from machine import Pin, I2C
+from bno055 import BNO055, AXIS_P7
 from Navigation import Navigator, LineTracking, DeadReckoning, Odometer
 from messaging import OpenMV_MessageHandler
 
@@ -20,9 +22,9 @@ clock = time.clock()                # Create a clock object to track the FPS.
 
 master_is_ready = 0
 
-# UART using uart 1 and baud rate of 115200
-uart = pyb.UART(1, baudrate=9600, read_buf_len=512)
-messaging = OpenMV_MessageHandler(uart, status_data)
+RED_LED_PIN = 1
+BLUE_LED_PIN = 3
+
 
 status_data = {'Info_Task': 1,
                'Info_Patio': 1,
@@ -35,49 +37,86 @@ status_data = {'Info_Task': 1,
                'Control_Comm': 0 # 1 for starting wireless communication
                }
 
+
+# UART using uart 1 and baud rate of 115200
+uart = pyb.UART(1, baudrate=9600, read_buf_len=512)
+messaging = OpenMV_MessageHandler(uart, status_data)
+
 imu = None
 
 # Test if navigator will fail when imu is not valid, e.g. when the cable falls off
-navigator_invalid = Navigator(imu)
-navigator_invalid.set_target_heading(100)
-print('target heading: ', navigator_invalid.get_target_heading())
-print('current heading: ', navigator_invalid.get_current_heading())
-print('control output: ', navigator_invalid.get_control_output())
+#navigator_invalid = Navigator(imu, status_data) #fail line 46
+#navigator_invalid.set_target_heading(100)
+#print('target heading: ', navigator_invalid.get_target_heading())
+#print('current heading: ', navigator_invalid.get_current_heading())
+#print('control output: ', navigator_invalid.get_control_output())
 
 i2c = I2C(2, freq=400000)
+imu = BNO055(i2c)
 
 try:
     imu = BNO055(i2c)
 except:
     pyb.LED(RED_LED_PIN).on()
 
-navigator = Navigator(imu)
+navigator = Navigator(imu, status_data, turn_pid_p = 0.4, turn_pid_i = 0.005, turn_pid_d = 0.005)
 navigator.set_target_heading(180)
 print('target heading: ', navigator.get_target_heading())
 print('current heading: ', navigator.get_current_heading())
 print('control output: ', navigator.get_control_output())
 
-navigator.turn_to_heading(0)
-navigator.turn_degrees(90) # Turn right 90
-navigator.turn_right_degrees(90)
-navigator.turn_left_degrees(90)
-navigator.turn_right_90()
-navigator.turn_left_90()
-navigator.turn_to_heading(0) # Should turn left 90
-navigator.turn_to_heading(90) # Should turn right 90
 
 async def main():
     '''
         Main coroutine
     '''
+
     navigator.start_async()
-    navigator.set_target_heading(270)
-    uasyncio.sleep_ms(2)
-    navigator.set_target_heading(30)
-    uasyncio.sleep_ms(2)
-    navigator.set_target_heading(0)
-    uasyncio.sleep_ms(2)
+    print("async started")
+    while True:
+        print("target heading: ", navigator.get_target_heading())
+        print("current heading: ", navigator.get_current_heading())
+
+
+        navigator.set_target_heading(270)
+        print("target heading: ", navigator.get_target_heading())
+        print("current heading: ", navigator.get_current_heading())
+        await uasyncio.sleep_ms(10000)
+        navigator.set_target_heading(180)
+        print("target heading: ", navigator.get_target_heading())
+        print("current heading: ", navigator.get_current_heading())
+        await uasyncio.sleep_ms(10000)
+        navigator.set_target_heading(90)
+        print("target heading: ", navigator.get_target_heading())
+        print("current heading: ", navigator.get_current_heading())
+        await uasyncio.sleep_ms(10000)
+        navigator.set_target_heading(0)
+        print("target heading: ", navigator.get_target_heading())
+        print("current heading: ", navigator.get_current_heading())
+        await uasyncio.sleep_ms(10000)
+        navigator.set_target_heading(90)
+        print("target heading: ", navigator.get_target_heading())
+        print("current heading: ", navigator.get_current_heading())
+        await uasyncio.sleep_ms(10000)
+        navigator.set_target_heading(180)
+        print("target heading: ", navigator.get_target_heading())
+        print("current heading: ", navigator.get_current_heading())
+        await uasyncio.sleep_ms(10000)
+
+
+
     navigator.end_async()
+
+    '''
+    navigator.turn_to_heading(0)
+    navigator.turn_degrees(90) # Turn right 90
+    navigator.turn_right_degrees(90)
+    navigator.turn_left_degrees(90)
+    navigator.turn_right_90()
+    navigator.turn_left_90()
+    navigator.turn_to_heading(0) # Should turn left 90
+    navigator.turn_to_heading(90) # Should turn right 90
+   '''
     print("All tests passed!")
 
 try:
