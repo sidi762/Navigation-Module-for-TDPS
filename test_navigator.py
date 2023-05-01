@@ -71,6 +71,14 @@ async def main():
         Main coroutine
     '''
 
+    navigator.turn_to_heading(0)
+    navigator.turn_degrees(90, 1) # Turn right 90
+    navigator.turn_degrees(90, -1) # Turn left 90
+    navigator.turn_right_90()
+    navigator.turn_left_90()
+    navigator.turn_to_heading(0) # Should turn left 90
+    navigator.turn_to_heading(90) # Should turn right 90
+
     navigator.start_async()
     print("async started")
     while True:
@@ -107,16 +115,9 @@ async def main():
 
     navigator.end_async()
 
-    '''
-    navigator.turn_to_heading(0)
-    navigator.turn_degrees(90) # Turn right 90
-    navigator.turn_right_degrees(90)
-    navigator.turn_left_degrees(90)
-    navigator.turn_right_90()
-    navigator.turn_left_90()
-    navigator.turn_to_heading(0) # Should turn left 90
-    navigator.turn_to_heading(90) # Should turn right 90
-   '''
+
+
+
     print("All tests passed!")
 
 try:
