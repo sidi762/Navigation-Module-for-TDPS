@@ -25,7 +25,7 @@ class Navigator:
 
     def __init__(self, imu, status_data_ref,
                  turn_pid_p = 0.4, turn_pid_i = 0.005,
-                 turn_pid_d = 0.005, turn_pid_imax = 0):
+                 turn_pid_d = 0.005, turn_pid_imax = 5):
         self._imu = imu
         self._status_data_ref = status_data_ref
         self._turn_pid = PID(p = turn_pid_p,
@@ -68,7 +68,9 @@ class Navigator:
         # the angle to turn in this direction
         turn_err = 0
         turn_err_right = self._get_r_err(current_heading, target_heading)
+        turn_err_right = self._clip_turn_error(turn_err_right)
         turn_err_left = self._get_l_err(current_heading, target_heading)
+        turn_err_left = self._clip_turn_error(turn_err_left)
         if turn_err_right <= turn_err_left:
             # Turn right
             return 1, turn_err_right
@@ -86,6 +88,7 @@ class Navigator:
 
         if self._imu:
             current_heading = self._update_current_heading_from_imu(self._imu)
+            current_heading = int(current_heading)
             if direction == 0:
                 # Automatically determine direction
                 direction, turn_err = self._get_dir_and_err(current_heading,
@@ -116,13 +119,16 @@ class Navigator:
             This is a coroutine so that the command message
             can be sent to the master control
         '''
-        current_heading = self._update_current_heading_from_imu(self._imu)
+        current_heading = int(self._update_current_heading_from_imu(self._imu))
+        print("Current heading: ", current_heading, ", target heading: ", target_heading)
         while target_heading != current_heading:
+            print("Current heading: ", current_heading, ", target heading: ", target_heading)
             turn_control = self.calculate_pid(target_heading, direction)
             self._update_status_data(turn_control)
-            current_heading = self._update_current_heading_from_imu(self._imu)
-            await asyncio.sleep(0)
+            current_heading = int(self._update_current_heading_from_imu(self._imu))
+            await uasyncio.sleep(0)
 
+        print("Turned to ", target_heading)
         return 0
 
     def turn_degrees(self, degrees, direction = 1):
@@ -133,6 +139,7 @@ class Navigator:
             Returns when the turn is completed
         '''
         current_heading = self._update_current_heading_from_imu(self._imu)
+        current_heading = int(current_heading)
         target_heading = current_heading + direction * degrees
         if target_heading >= 360:
             target_heading -= 360
