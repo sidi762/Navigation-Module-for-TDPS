@@ -14,6 +14,7 @@ class OpenMV_MessageHandler:
         self._swriter = uasyncio.StreamWriter(uart, {})
         self._sreader = uasyncio.StreamReader(uart)
         self._task = uasyncio.create_task(self.readwrite())
+        self._master_is_ready = 0
 
 
     _encoder_data = {'Info_Encoder_A': "0",
@@ -91,6 +92,13 @@ class OpenMV_MessageHandler:
             Returns a copy of the encoder data
         '''
         return self._feedback_data.copy()
+
+    def master_is_ready(self):
+        '''
+            Returns True if the master is ready to send data
+        '''
+        return self._last_message != 'nil'
+
 
     def cancel(self):
         '''
