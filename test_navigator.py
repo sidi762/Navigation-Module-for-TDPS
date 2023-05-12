@@ -59,7 +59,7 @@ try:
 except:
     pyb.LED(RED_LED_PIN).on()
 
-navigator = Navigator(imu, status_data, turn_pid_p = 0.4, turn_pid_i = 0.005, turn_pid_d = 0.005)
+navigator = Navigator(imu, status_data, turn_pid_p = 0.6, turn_pid_i = 0.05, turn_pid_d = 0.01, turn_pid_imax = 1)
 navigator.set_target_heading(180)
 print('target heading: ', navigator.get_target_heading())
 print('current heading: ', navigator.get_current_heading())
@@ -70,14 +70,23 @@ async def main():
     '''
         Main coroutine
     '''
-
-    navigator.turn_to_heading(0)
-    navigator.turn_degrees(90, 1) # Turn right 90
-    navigator.turn_degrees(90, -1) # Turn left 90
-    navigator.turn_right_90()
-    navigator.turn_left_90()
-    navigator.turn_to_heading(0) # Should turn left 90
-    navigator.turn_to_heading(90) # Should turn right 90
+    while messaging.master_is_ready() == 0:
+        await uasyncio.sleep_ms(1)
+        pass
+    # await navigator.turn_to_heading(0)
+    # await uasyncio.sleep(0)
+    # await navigator.turn_degrees(90, 1) # Turn right 90
+    # await uasyncio.sleep(0)
+    # await navigator.turn_degrees(90, -1) # Turn left 90
+    # await uasyncio.sleep(0)
+    # await navigator.turn_right_90()
+    # await uasyncio.sleep(0)
+    # await navigator.turn_left_90()
+    # await uasyncio.sleep(0)
+    # await navigator.turn_to_heading(0) # Should turn left 90
+    # await uasyncio.sleep(0)
+    # await navigator.turn_to_heading(90) # Should turn right 90
+    # await uasyncio.sleep(0)
 
     navigator.start_async()
     print("async started")
