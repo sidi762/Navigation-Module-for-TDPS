@@ -20,7 +20,7 @@ class HCSR04:
             Usage: distance = sensor.getDistance()
             returns the distance in CM
         """
-        pulse_start, pulse_end, pulse_dur = 0
+        pulse_start, pulse_end, pulse_dur = 0, 0, 0
         self.trig.value(1)
         pyb.udelay(5)
         self.trig.value(0)
