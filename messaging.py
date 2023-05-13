@@ -7,7 +7,7 @@
 import json, uasyncio
 
 class OpenMV_MessageHandler:
-    def __init__(self, uart, status_data_ref):
+    def __init__(self, uart, status_data_ref, print_debug=0):
         self._uart = uart
         self._last_message = 'nil'
         self._status_data_ref = status_data_ref
@@ -15,6 +15,7 @@ class OpenMV_MessageHandler:
         self._sreader = uasyncio.StreamReader(uart)
         self._task = uasyncio.create_task(self.readwrite())
         self._master_is_ready = 0
+        self._print_debug = print_debug
 
 
     _encoder_data = {'Info_Encoder_A': "0",
@@ -26,13 +27,20 @@ class OpenMV_MessageHandler:
                       'Info_Ball': 0,
                       'Info_Comm': 0}
 
+    def _debug_print(self, *args, **kwargs):
+        '''
+        Prints the debug log if self._print_debug is set to 1
+        '''
+        if self._print_debug == 1:
+            print(*args, **kwargs)
+
     async def _uart_messaging_json(self, status_data):
         data_json = json.dumps(status_data)
         uart_send_buffer = b'\xaa\x55' \
                            + len(data_json).to_bytes(1, 'big') \
                            + bytes(data_json, 'utf-8')
-        print("UART sent: ", uart_send_buffer)
-        print("UART len: ", len(uart_send_buffer))
+        self._debug_print("UART sent: ", uart_send_buffer)
+        self._debug_print("UART len: ", len(uart_send_buffer))
         last_message = uart_send_buffer
         return uart_send_buffer
 
@@ -57,25 +65,25 @@ class OpenMV_MessageHandler:
 
     async def _uart_recv_json(self, rcv_buffer):
         data = ''
-        print("Processing rcvbuffer: ", rcv_buffer)
+        self._debug_print("Processing rcvbuffer: ", rcv_buffer)
         success = True
         try:
             data = json.loads(rcv_buffer)
         except ValueError as err:
-            print("ValueError! Received json string invalid")
-            print("Message causing error: ", rcv_buffer)
+            self._debug_print("ValueError! Received json string invalid")
+            self._debug_print("Message causing error: ", rcv_buffer)
             return False
 
         ret = await self._update_encoder_data(data)
         if not ret:
-            print("encoder data failed to update, check data")
-            print("Message causing error: ", data)
+            self._debug_print("encoder data failed to update, check data")
+            self._debug_print("Message causing error: ", data)
             success = False
 
         ret = await self._update_feedback_data(data)
         if not ret:
-            print("feedback data failed to update, check data")
-            print("Message causing error: ", data)
+            self._debug_print("feedback data failed to update, check data")
+            self._debug_print("Message causing error: ", data)
             success = False
 
         return success
@@ -117,11 +125,11 @@ class OpenMV_MessageHandler:
             while True:
                 last_message = self._last_message
                 status_data = self._status_data_ref
-                print('Waiting for incoming message...')
+                self._debug_print('Waiting for incoming message...')
                 rcvbuf = ''
                 rcv = await sreader.read(1)
                 if rcv:
-                    print('Received: ', rcv)
+                    self._debug_print('Received: ', rcv)
                     buf = last_message
                     if rcv == b'\xcd':
                         # 0xcd: last message correctly received,
@@ -139,14 +147,14 @@ class OpenMV_MessageHandler:
                     elif rcv == b'\xaa':
                         # 0xaa 0x55: Incoming message
                         rcv = await sreader.read(1)
-                        print('Received: ', rcv)
+                        self._debug_print('Received: ', rcv)
                         if rcv == b'\x55':
                             rcvlen = await sreader.read(1)
                             rcvlen = int.from_bytes(rcvlen, 'big')
-                            print("rcvlen: ", rcvlen)
+                            self._debug_print("rcvlen: ", rcvlen)
                             if rcvlen == 1:
-                                print("Master control ready")
-                                master_is_ready = 1
+                                self._debug_print("Master control ready")
+                                self._master_is_ready = 1
                                 await uasyncio.sleep_ms(1)
                                 continue
                             rcvbuf = await sreader.read(rcvlen)
@@ -156,10 +164,12 @@ class OpenMV_MessageHandler:
                                 # Message cannot be parsed correctly, possible
                                 # corruption in transmission
                                 buf = b'\xdd'
+                                await uasyncio.sleep_ms(1)
                         else:
                             # Does not match the protocol, possible
                             # corruption in transmission
                             buf = b'\xdd'
+                            await uasyncio.sleep_ms(1)
 
                     else:
                         # Unspecified in protocol, possible
@@ -170,7 +180,7 @@ class OpenMV_MessageHandler:
                     await swriter.awrite(buf)
                     await swriter.drain()
                     await sreader.drain()
-                    print('Sent: ', buf)
+                    self._debug_print('Sent: ', buf)
                     await uasyncio.sleep_ms(5)
                 #End If
             #End While
