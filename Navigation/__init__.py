@@ -24,8 +24,8 @@ from pid import PID
 class Navigator:
 
     def __init__(self, imu, status_data_ref,
-                 turn_pid_p = 0.4, turn_pid_i = 0.005,
-                 turn_pid_d = 0.005, turn_pid_imax = 5):
+                 turn_pid_p = 0.6, turn_pid_i = 0.001,
+                 turn_pid_d = 0.001, turn_pid_imax = 5):
         self._imu = imu
         self._status_data_ref = status_data_ref
         self._turn_pid = PID(p = turn_pid_p,
