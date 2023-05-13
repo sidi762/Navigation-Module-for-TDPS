@@ -104,6 +104,8 @@ class Navigator:
                        be one of 0, 1, or -1, given ", direction, ").")
                 return 0
 
+            if abs(turn_err) <= 1:
+                turn_err = 0
             turn_control = self._turn_pid.get_pid(turn_err, 1)
             self._control_output = turn_control
             return turn_control
@@ -124,9 +126,14 @@ class Navigator:
         while target_heading != current_heading:
             print("Current heading: ", current_heading, ", target heading: ", target_heading)
             turn_control = self.calculate_pid(target_heading, direction)
+            if turn_control > 1.5 and turn_control < 30:
+                turn_control = 30
+            elif turn_control < -1.5 and turn_control > -30:
+                turn_control = -30
             self._update_status_data(turn_control)
+            self._control_output = turn_control
             current_heading = int(self._update_current_heading_from_imu(self._imu))
-            await uasyncio.sleep(0)
+            await uasyncio.sleep_ms(1)
 
         print("Turned to ", target_heading)
         return 0
@@ -147,8 +154,8 @@ class Navigator:
             target_heading += 360
         self._target_heading = target_heading
         print("Turning heading ", target_heading, "...")
-        await self.turn_to_heading(target_heading, direction)
-        print("Turn completed, current heading ", current_heading)
+        uasyncio.run(self.turn_to_heading(target_heading, direction))
+        print("Turn queued, current heading ", current_heading)
         return 0
 
     def turn_right_90(self):
