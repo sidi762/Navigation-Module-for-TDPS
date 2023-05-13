@@ -50,6 +50,9 @@ status_data = {'Info_Task': 1,
 
 master_is_ready = 0
 
+# HCSR04
+ultrasonic = HCSR04(trig=Pin('P2', Pin.OUT_PP), echo=Pin('P3', Pin.IN, Pin.PULL_DOWN))
+
 # UART using uart 1 and baud rate of 115200
 uart = pyb.UART(1, baudrate=9600, read_buf_len=512)
 messaging = OpenMV_MessageHandler(uart, status_data)
