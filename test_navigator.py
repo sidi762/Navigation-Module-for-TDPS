@@ -11,6 +11,7 @@
 import sensor, image, time, pyb, uasyncio
 from machine import Pin, I2C
 from bno055 import BNO055, AXIS_P7
+from HCSR04 import HCSR04
 from Navigation import Navigator, LineTracking, DeadReckoning, Odometer
 from messaging import OpenMV_MessageHandler
 
@@ -59,7 +60,7 @@ try:
 except:
     pyb.LED(RED_LED_PIN).on()
 
-navigator = Navigator(imu, status_data, turn_pid_p = 0.6, turn_pid_i = 0.05, turn_pid_d = 0.01, turn_pid_imax = 1)
+navigator = Navigator(imu, status_data, turn_pid_p = 0.6, turn_pid_i = 0.001, turn_pid_d = 0.001, turn_pid_imax = 2)
 navigator.set_target_heading(180)
 print('target heading: ', navigator.get_target_heading())
 print('current heading: ', navigator.get_current_heading())
@@ -72,55 +73,62 @@ async def main():
     '''
     while messaging.master_is_ready() == 0:
         await uasyncio.sleep_ms(1)
+        pyb.LED(BLUE_LED_PIN).on()
+        pyb.LED(RED_LED_PIN).on()
         pass
+
+    pyb.LED(RED_LED_PIN).off()
+    pyb.LED(BLUE_LED_PIN).off()
     # await navigator.turn_to_heading(0)
     # await uasyncio.sleep(0)
     # await navigator.turn_degrees(90, 1) # Turn right 90
     # await uasyncio.sleep(0)
     # await navigator.turn_degrees(90, -1) # Turn left 90
     # await uasyncio.sleep(0)
-    # await navigator.turn_right_90()
-    # await uasyncio.sleep(0)
-    # await navigator.turn_left_90()
-    # await uasyncio.sleep(0)
+    navigator.turn_right_90()
+    pyb.LED(RED_LED_PIN).on()
+    await uasyncio.sleep_ms(20000)
+    pyb.LED(RED_LED_PIN).off()
+    navigator.turn_left_90()
+    pyb.LED(RED_LED_PIN).on()
+    await uasyncio.sleep_ms(20000)
+    pyb.LED(RED_LED_PIN).off()
     # await navigator.turn_to_heading(0) # Should turn left 90
     # await uasyncio.sleep(0)
     # await navigator.turn_to_heading(90) # Should turn right 90
     # await uasyncio.sleep(0)
 
     navigator.start_async()
+    pyb.LED(BLUE_LED_PIN).on()
     print("async started")
-    while True:
-        print("target heading: ", navigator.get_target_heading())
-        print("current heading: ", navigator.get_current_heading())
+    print("target heading: ", navigator.get_target_heading())
+    print("current heading: ", navigator.get_current_heading())
 
 
-        navigator.set_target_heading(270)
-        print("target heading: ", navigator.get_target_heading())
-        print("current heading: ", navigator.get_current_heading())
-        await uasyncio.sleep_ms(10000)
-        navigator.set_target_heading(180)
-        print("target heading: ", navigator.get_target_heading())
-        print("current heading: ", navigator.get_current_heading())
-        await uasyncio.sleep_ms(10000)
-        navigator.set_target_heading(90)
-        print("target heading: ", navigator.get_target_heading())
-        print("current heading: ", navigator.get_current_heading())
-        await uasyncio.sleep_ms(10000)
-        navigator.set_target_heading(0)
-        print("target heading: ", navigator.get_target_heading())
-        print("current heading: ", navigator.get_current_heading())
-        await uasyncio.sleep_ms(10000)
-        navigator.set_target_heading(90)
-        print("target heading: ", navigator.get_target_heading())
-        print("current heading: ", navigator.get_current_heading())
-        await uasyncio.sleep_ms(10000)
-        navigator.set_target_heading(180)
-        print("target heading: ", navigator.get_target_heading())
-        print("current heading: ", navigator.get_current_heading())
-        await uasyncio.sleep_ms(10000)
-
-
+    navigator.set_target_heading(270)
+    print("target heading: ", navigator.get_target_heading())
+    print("current heading: ", navigator.get_current_heading())
+    await uasyncio.sleep_ms(10000)
+    navigator.set_target_heading(180)
+    print("target heading: ", navigator.get_target_heading())
+    print("current heading: ", navigator.get_current_heading())
+    await uasyncio.sleep_ms(10000)
+    navigator.set_target_heading(90)
+    print("target heading: ", navigator.get_target_heading())
+    print("current heading: ", navigator.get_current_heading())
+    await uasyncio.sleep_ms(10000)
+    navigator.set_target_heading(0)
+    print("target heading: ", navigator.get_target_heading())
+    print("current heading: ", navigator.get_current_heading())
+    await uasyncio.sleep_ms(10000)
+    navigator.set_target_heading(90)
+    print("target heading: ", navigator.get_target_heading())
+    print("current heading: ", navigator.get_current_heading())
+    await uasyncio.sleep_ms(10000)
+    navigator.set_target_heading(180)
+    print("target heading: ", navigator.get_target_heading())
+    print("current heading: ", navigator.get_current_heading())
+    await uasyncio.sleep_ms(10000)
 
     navigator.end_async()
 
