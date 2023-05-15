@@ -15,7 +15,7 @@ class HCSR04:
         self.trig = trig
         self.echo = echo
 
-    def getDistance(self):
+    def get_distance(self):
         """
             Usage: distance = sensor.getDistance()
             returns the distance in CM
