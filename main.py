@@ -107,8 +107,8 @@ async def start_patio_1():
             if odo > last_odo:
                 #print(odo)
                 last_odo = odo
-            print(ultrasonic.getDistance())
-            print(ultrasonic_right.getDistance())
+            print(ultrasonic.get_distance())
+            print(ultrasonic_right.get_distance())
             if imu:
                 dr.dead_reckoning(imu)
                 #print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
@@ -167,10 +167,6 @@ async def start_patio_1():
     return 0
 
 
-nav = Navigator()
-get_distance = HCSR04().getDistance()
-#get_right_distance =
-
 def move_forward_until_hit():
     while True:
         distance = get_distance()
@@ -201,7 +197,7 @@ async def start_patio_2():
         status_data['Info_Task'] = 1
         print("Performing task 1")
 
-        distance = get_distance()
+        distance = ultrasonic.get_distance()
         ###Moveforward by ultrasonic
         if distance >20:
             status_data['Control_Velocity']=100
@@ -230,7 +226,7 @@ async def start_patio_2():
     elif current_task == 2:
         #navigate to task2
         status_data['Info_Task'] = current_task
-        status_data['Control_Angle'] = nav.turn_degrees(-90)
+        status_data['Control_Angle'] = navigator.turn_left_90()
         stages = {
             "forward": {"turn_degrees": 0, "velocity": 100},
             "turn_left": {"turn_degrees": -90, "velocity": 0},
@@ -248,8 +244,8 @@ async def start_patio_2():
         current_stage_index = 0
 
         while True:
-            distance = get_distance()
-            right_distance = get_right_distance()
+            distance = ultrasonic.get_distance()
+            right_distance = ultrasonic_right.get_distance()
             if distance < 10 or right_distance > 30:
                 current_stage_index += 1
                 current_stage = list(stages.keys())[current_stage_index]
@@ -275,7 +271,7 @@ async def start_patio_2():
         velocity = 100
         status_data['Info_Task'] = current_task
         ###nav to communication spot
-        status_data['Control_Angle'] = nav.turn_degrees(-90)
+        status_data['Control_Angle'] = navigator.turn_left_90()
         stages = {
             "forward": {"turn_degrees": 0, "velocity": 100},
             "turn_left": {"turn_degrees": -90, "velocity": 0},
@@ -287,8 +283,8 @@ async def start_patio_2():
         current_stage_index = 0
         start_time = 0  # Define start_time with a default value
         while True:
-            distance = get_distance()
-            right_distance = get_right_distance()
+            distance = ultrasonic.get_distance()
+            right_distance = ultrasonic_right.get_distance()
 
             if current_stage == "forward" and distance < 10:
                 current_stage = "turn_left"
