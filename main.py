@@ -13,6 +13,7 @@ from time import sleep_ms
 from pyb import Timer
 import uasyncio
 from messaging import OpenMV_MessageHandler
+from Arrow import arrow_detection
 
 '''
 GPIO Pin usage:
@@ -147,59 +148,169 @@ async def start_patio_1():
 
     return 0
 
+
+nav = Navigator()
+get_distance = HCSR04().getDistance()
+#get_right_distance =
+
+def move_forward_until_hit():
+    while True:
+        distance = get_distance()
+        if distance == 0:
+            time.sleep_ms(50)  # wait for the car to collide with the board
+            distance = get_distance()
+            if distance > 100:
+                # board has been hit
+                break
+        else:
+            #move forward
+            status_data['Control_Velocity'] = 100
+
 async def start_patio_2():
+
+    #差：##1.右超声波 ##2. 调整角度
+
     status_data['Info_Patio'] = 2
     print("In Patio 2")
     current_task = status_data['Info_Task']
-    patio1_task1_stop_signal = 0
-    patio1_task2_stop_signal = 0
-    patio1_task3_stop_signal = 0
+    patio2_task1_stop_signal = 0
+    patio2_task2_stop_signal = 0
+    patio2_task3_stop_signal = 0
+
+
     if current_task == 1:
         # Arrow detection
         status_data['Info_Task'] = 1
         print("Performing task 1")
 
+        distance = get_distance()
         ###Moveforward by ultrasonic
+        if distance >20:
+            status_data['Control_Velocity']=100
+        status_data['Control_Velocity']=0
 
         ###arrowdetection
-        arrow=arrow_detection();
+        arrow_direction = arrow_detection();
                 #Arrow.py
+        turning_angles = {"left": -135, "up":-90,"right": -45}
 
-        ###turn angle
-        if arrow=="left":
-            pass
-            #imu.angle();
-        elif arrow=="forward":
-            pass
-            #imu
-        elif arrow=="right":
-            pass
-            #imu
+        # turn left or right based on the arrow direction
+        if arrow_direction in turning_angles:
+            angle = turning_angles[arrow_direction]
+            status_data['Control_Angle']= -angle  # negative angle to turn left
+            move_forward_until_hit()
+            status_data['Control_Angle']= angle
 
-        ###moveforward by ultrasonic
+
+        while True:
+            if patio2_task1_stop_signal:
+                velocity = 0
+                current_task = 2
+                break
+        await uasyncio.sleep_ms(1)
 
     elif current_task == 2:
+        #navigate to task2
+        status_data['Info_Task'] = current_task
+        status_data['Control_Angle'] = nav.turn_degrees(-90)
+        stages = {
+            "forward": {"turn_degrees": 0, "velocity": 100},
+            "turn_left": {"turn_degrees": -90, "velocity": 0},
+            "forward2": {"turn_degrees": 0, "velocity": 100},
+            "turn_right": {"turn_degrees": 90, "velocity": 0},
+            "forward3": {"turn_degrees": 0, "velocity": 100},
+            "turn_left2": {"turn_degrees": -90, "velocity": 0},
+            "forward4": {"turn_degrees": 0, "velocity": 100},
+            "turn_right2": {"turn_degrees": 90, "velocity": 0},
+            "forward5": {"turn_degrees": 0, "velocity": 100},
+            "turn_left3": {"turn_degrees": -90, "velocity": 0},
+            "forward6": {"turn_degrees": 0, "velocity": 0}
+        }
+        current_stage = "forward"
+        current_stage_index = 0
+
+        while True:
+            distance = get_distance()
+            right_distance = get_right_distance()
+            if distance < 10 or right_distance > 30:
+                current_stage_index += 1
+                current_stage = list(stages.keys())[current_stage_index]
+            if current_stage_index == 10:
+                status_data['Control_Velocity'] = 0
+                break
+            stage = stages[current_stage]
+            status_data['Control_Angle'] = stage["turn_degrees"]
+            status_data['Control_Velocity'] = stage["velocity"]
+            await uasyncio.sleep_ms(1000)
+
         #drop the ball
-        status_data['Info_Task'] = 2
-        ###find fence
+        status_data['Control_Ball'] = 1
+        while True:
 
-        ###distance to 0
-             #ultra
-        ###drop the ball
-
+            #check_task_done()
+            if patio2_task2_stop_signal:
+                current_task = 3
+                break
 
 
     elif current_task == 3:
-        # To planter
-        status_data['Info_Task'] = 3
-        ###imu turn left
+        velocity = 100
+        status_data['Info_Task'] = current_task
+        ###nav to communication spot
+        status_data['Control_Angle'] = nav.turn_degrees(-90)
+        stages = {
+            "forward": {"turn_degrees": 0, "velocity": 100},
+            "turn_left": {"turn_degrees": -90, "velocity": 0},
+            "backward": {"turn_degrees": 0, "velocity": -100},
+            "turn_right": {"turn_degrees": 90, "velocity": 0},
+            "stop": {"turn_degrees": 0, "velocity": 0}
+        }
+        current_stage = "forward"
+        current_stage_index = 0
+        start_time = 0  # Define start_time with a default value
+        while True:
+            distance = get_distance()
+            right_distance = get_right_distance()
 
-        ###go for apriltag
+            if current_stage == "forward" and distance < 10:
+                current_stage = "turn_left"
+            elif current_stage == "turn_left":
+                current_stage = "backward"
+            elif current_stage == "backward" and right_distance > 50:
+                current_stage = "turn_right"
+                status_data['Control_Velocity'] = velocity
+                start_time = pyb.millis()
+            elif current_stage == "turn_right" and pyb.elapsed_millis(start_time) > 5000:
+                current_stage = "stop"
+            elif current_stage == "stop":
+                break
 
+            stage = stages[current_stage]
+            status_data['Control_Angle'] = stage["turn_degrees"]
+            status_data['Control_Velocity'] = stage["velocity"]
+            break
 
+        #communication
+        status_data['Control_Comm']=1
 
-    print("Patio 2 is progressing....can't wait to see:)...")
+        while True:
+            if patio2_task3_stop_signal:
+                # Patio 2 done
+                current_patio = 0
+                current_task = 0
+                current_stage = 0
+                break
+
     return 0
+
+
+def move_forward(duration):
+    velocity = 100
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        status_data['Control_Velocity'] = velocity
+    status_data['Control_Velocity'] = 0
+
 
 async def main():
     '''

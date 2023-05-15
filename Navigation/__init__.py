@@ -201,6 +201,8 @@ class Navigator:
     def get_control_output(self):
         return self._control_output
 
+
+
 class LineTracking:
 
     def __init__(self, sensor, kernal_size = 1,
