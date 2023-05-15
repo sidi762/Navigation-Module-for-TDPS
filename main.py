@@ -52,10 +52,11 @@ master_is_ready = 0
 
 # HCSR04
 ultrasonic = HCSR04(trig=Pin('P2', Pin.OUT_PP), echo=Pin('P3', Pin.IN, Pin.PULL_DOWN))
+ultrasonic_right = HCSR04(trig=Pin('P7', Pin.OUT_PP), echo=Pin('P8', Pin.IN, Pin.PULL_DOWN))
 
 # UART using uart 1 and baud rate of 115200
 uart = pyb.UART(1, baudrate=9600, read_buf_len=512)
-messaging = OpenMV_MessageHandler(uart, status_data)
+messaging = OpenMV_MessageHandler(uart, status_data, 1)
 
 # I2C
 i2c = I2C(2, freq=400000)
@@ -68,6 +69,9 @@ except:
 dr = DeadReckoning()
 
 line_tracking = LineTracking(sensor, draw=True)
+navigator = Navigator(imu, status_data, turn_pid_p = 0.6,
+                      turn_pid_i = 0.001, turn_pid_d = 0.001,
+                      turn_pid_imax = 2)
 odometer = Odometer()
 #line_tracking.start()
 
@@ -100,9 +104,10 @@ async def start_patio_1():
             await uasyncio.sleep(0)
             odo = odometer.get_odometer()
             if odo > last_odo:
-                print(odo)
+                #print(odo)
                 last_odo = odo
-
+            print(ultrasonic.getDistance())
+            print(ultrasonic_right.getDistance())
             if imu:
                 dr.dead_reckoning(imu)
                 #print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
@@ -110,6 +115,7 @@ async def start_patio_1():
 
             if patio1_task1_stop_signal:
                 velocity = 0
+                status_data['Control_Velocity'] = velocity
                 current_task = 2
                 line_tracking.end()
                 break
@@ -120,13 +126,18 @@ async def start_patio_1():
 
         #Turn right 90 degress
         status_data['Info_Stage'] = 1
+        navigator.turn_right_90()
+
 
         # Crossing the bridge
         status_data['Info_Stage'] = 2
         while True:
             velocity = 50
+            status_data['Control_Velocity'] = velocity
             #check_task_done()
             if patio1_task2_stop_signal:
+                velocity = 0
+                status_data['Control_Velocity'] = velocity
                 current_task = 3
                 break
 
@@ -136,12 +147,16 @@ async def start_patio_1():
 
         #Turn left 90 degress
         status_data['Info_Stage'] = 1
+        navigator.turn_left_90()
 
         # Passing the Door
         status_data['Info_Stage'] = 2
         while True:
             velocity = 100
+            status_data['Control_Velocity'] = velocity
             if patio1_task3_stop_signal:
+                velocity = 0
+                status_data['Control_Velocity'] = velocity
                 #Patio 1 done
                 current_patio = 0
                 current_task = 0
