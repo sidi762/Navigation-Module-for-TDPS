@@ -128,6 +128,7 @@ class Navigator:
             '''
             Turn until the target heading is reached
             '''
+            await uasyncio.sleep_ms(1)
             self._is_turning = True
             # One shot mode: turn only once
             if one_shot:
@@ -146,8 +147,11 @@ class Navigator:
             self._update_status_data(turn_control)
             self._control_output = turn_control
             current_heading = int(self._update_current_heading_from_imu(self._imu))
-            await uasyncio.sleep_ms(1)
 
+
+        turn_control = 0
+        self._update_status_data(turn_control)
+        self._control_output = turn_control
         self._is_turning = False
         print("Turned to ", target_heading)
         return 0
@@ -225,6 +229,9 @@ class Navigator:
             End the navigation and do some cleanups if necessary
         '''
         self._is_navigating = False
+        control_output = 0
+        self._update_status_data(control_output)
+        self._control_output = control_output
 
     def set_target_heading(self, heading):
         self._target_heading = heading
@@ -328,6 +335,8 @@ class LineTracking:
         sens = self._sensor
         sens.set_pixformat(self._sensor_settings.pixformat)
         sens.set_framesize(self._sensor_settings.framesize)
+        sens.set_vflip(self._sensor_settings.vflip)
+        sens.set_hmirror(self._sensor_settings.hmirror)
         sens.skip_frames(time = 100)     # Wait for settings take effect.
         self._is_started = False
 
@@ -335,6 +344,8 @@ class LineTracking:
         sens = self._sensor
         sens.set_pixformat(self._sensor.GRAYSCALE) # Set pixel format to GRAYSCALE
         sens.set_framesize(self._sensor.HQVGA)
+        sens.set_vflip(True)
+        sens.set_hmirror(True)
         #sens.set_windowing((60, 40, 160, 120))
         # if (self._sensor.get_id() == self._sensor.OV7725):
              # Set the sharpness/edge register for OV7725
@@ -346,6 +357,8 @@ class LineTracking:
     def _store_sensor_settings(self):
         self._sensor_settings['pixformat'] = self._sensor.get_pixformat()
         self._sensor_settings['framesize'] = self._sensor.get_framesize()
+        self._sensor_settings['vflip'] = self._sensor.get_vflip()
+        self._sensor_settings['hmirror'] = self._sensor.get_hmirror()
 
 
     def _apply_filter(self, img, threshold=True):
