@@ -24,8 +24,8 @@ from pid import PID
 class Navigator:
 
     def __init__(self, imu, status_data_ref,
-                 turn_pid_p = 0.4, turn_pid_i = 0.005,
-                 turn_pid_d = 0.005, turn_pid_imax = 0):
+                 turn_pid_p = 0.6, turn_pid_i = 0.001,
+                 turn_pid_d = 0.001, turn_pid_imax = 5):
         self._imu = imu
         self._status_data_ref = status_data_ref
         self._turn_pid = PID(p = turn_pid_p,
@@ -38,6 +38,7 @@ class Navigator:
     _current_heading = 0
     _is_navigating = False
     _control_output = 0
+    _is_turning = False
 
     def _update_status_data(self, control):
         self._status_data_ref['Control_PID'] = control
@@ -68,7 +69,9 @@ class Navigator:
         # the angle to turn in this direction
         turn_err = 0
         turn_err_right = self._get_r_err(current_heading, target_heading)
+        turn_err_right = self._clip_turn_error(turn_err_right)
         turn_err_left = self._get_l_err(current_heading, target_heading)
+        turn_err_left = self._clip_turn_error(turn_err_left)
         if turn_err_right <= turn_err_left:
             # Turn right
             return 1, turn_err_right
@@ -86,6 +89,7 @@ class Navigator:
 
         if self._imu:
             current_heading = self._update_current_heading_from_imu(self._imu)
+            current_heading = int(current_heading)
             if direction == 0:
                 # Automatically determine direction
                 direction, turn_err = self._get_dir_and_err(current_heading,
@@ -101,13 +105,15 @@ class Navigator:
                        be one of 0, 1, or -1, given ", direction, ").")
                 return 0
 
+            if abs(turn_err) <= 1:
+                turn_err = 0
             turn_control = self._turn_pid.get_pid(turn_err, 1)
             self._control_output = turn_control
             return turn_control
         else:
             return 0
 
-    async def turn_to_heading(self, target_heading, direction = 0):
+    async def turn_to_heading(self, target_heading, direction = 0, one_shot = False):
         '''
             Turn to a given heading
             Turns right for direction = 1, left for direction = -1,
@@ -116,16 +122,37 @@ class Navigator:
             This is a coroutine so that the command message
             can be sent to the master control
         '''
-        current_heading = self._update_current_heading_from_imu(self._imu)
+        current_heading = int(self._update_current_heading_from_imu(self._imu))
+        print("Current heading: ", current_heading, ", target heading: ", target_heading)
         while target_heading != current_heading:
-            turn_control = self.calculate_pid(target_heading, direction)
-            self._update_status_data(turn_control)
-            current_heading = self._update_current_heading_from_imu(self._imu)
-            await asyncio.sleep(0)
+            '''
+            Turn until the target heading is reached
+            '''
+            self._is_turning = True
+            # One shot mode: turn only once
+            if one_shot:
+                if direction == 1 and target_heading < current_heading:
+                    break
+                elif direction == -1 and target_heading > current_heading:
+                    break
 
+            print("Current heading: ", current_heading, ", target heading: ", target_heading)
+            turn_control = self.calculate_pid(target_heading, direction)
+            # Set the minimum turn control to 30 to avoid hanging
+            if turn_control > 1 and turn_control < 30:
+                turn_control = 30
+            elif turn_control < -1 and turn_control > -30:
+                turn_control = -30
+            self._update_status_data(turn_control)
+            self._control_output = turn_control
+            current_heading = int(self._update_current_heading_from_imu(self._imu))
+            await uasyncio.sleep_ms(1)
+
+        self._is_turning = False
+        print("Turned to ", target_heading)
         return 0
 
-    def turn_degrees(self, degrees, direction = 1):
+    def turn_degrees(self, degrees, direction = 1, one_shot = False):
         '''
             Turn for a given angle
             degrees should be positive
@@ -133,6 +160,7 @@ class Navigator:
             Returns when the turn is completed
         '''
         current_heading = self._update_current_heading_from_imu(self._imu)
+        current_heading = int(current_heading)
         target_heading = current_heading + direction * degrees
         if target_heading >= 360:
             target_heading -= 360
@@ -140,22 +168,22 @@ class Navigator:
             target_heading += 360
         self._target_heading = target_heading
         print("Turning heading ", target_heading, "...")
-        await self.turn_to_heading(target_heading, direction)
-        print("Turn completed, current heading ", current_heading)
+        uasyncio.create_task(self.turn_to_heading(target_heading, direction, one_shot))
+        print("Turn queued, current heading ", current_heading)
         return 0
 
     def turn_right_90(self):
         '''
             Turn right for 90 degrees
         '''
-        self.turn_degrees(90, 1)
+        self.turn_degrees(90, 1, True)
         return 0
 
     def turn_left_90(self):
         '''
             Turn left for 90 degrees
         '''
-        self.turn_degrees(90, -1)
+        self.turn_degrees(90, -1, True)
         return 0
 
     async def _navigate_async(self):
@@ -164,8 +192,17 @@ class Navigator:
             This is a coroutine
         '''
         while self._is_navigating:
+            if self._is_turning:
+                # Wait until the turn is completed to avoid conflicts
+                await uasyncio.sleep_ms(100)
+                break
             await uasyncio.sleep_ms(1)
             control_output = self.calculate_pid(self._target_heading)
+            # Set the minimum turn control to 30 to avoid hanging
+            if control_output > 1 and control_output < 30:
+                control_output = 30
+            elif control_output < -1 and control_output > -30:
+                control_output = -30
             self._update_status_data(control_output)
             self._control_output = control_output
 

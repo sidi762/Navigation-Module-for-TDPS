@@ -28,7 +28,7 @@ GPIO Pin usage:
     - P8: Reserved fot possible second ultrasonic - I2C 4 avilable (SDA) - Servo 2 avilable
     - P9: Mode Switch
 '''
-
+mode_switch = Pin('P9', Pin.IN, Pin.PULL_DOWN)
 RED_LED_PIN = 1
 BLUE_LED_PIN = 3
 
@@ -50,6 +50,9 @@ status_data = {'Info_Task': 1,
                }
 
 master_is_ready = 0
+
+# HCSR04
+ultrasonic = HCSR04(trig=Pin('P2', Pin.OUT_PP), echo=Pin('P3', Pin.IN, Pin.PULL_DOWN))
 
 # UART using uart 1 and baud rate of 115200
 uart = pyb.UART(1, baudrate=9600, read_buf_len=512)
@@ -93,13 +96,13 @@ async def start_patio_1():
             status_data['Control_Velocity'] = velocity
             encoder_data = messaging.get_encoder_data()
             await uasyncio.sleep(0)
-            #odometer.update_with_encoder_data(int(encoder_data['Info_Encoder_A']),\
-            #                              int(encoder_data['Info_Encoder_B']))
-            #await uasyncio.sleep(0)
-            #odo = odometer.get_odometer()
-            #if odo > last_odo:
-            #    print(odo)
-            #    last_odo = odo
+            odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
+                                              float(encoder_data['Info_Encoder_B']))
+            await uasyncio.sleep(0)
+            odo = odometer.get_odometer()
+            if odo > last_odo:
+                print(odo)
+                last_odo = odo
 
             if imu:
                 dr.dead_reckoning(imu)
@@ -319,7 +322,9 @@ async def main():
     while True:
         clock.tick()
         ret = 1
-        current_patio = status_data['Info_Patio']
+        current_patio = mode_switch.value() + 1 # 1 for patio 1, 2 for patio 2
+        status_data['Info_Patio'] = current_patio
+        print("Current Patio: ", current_patio)
         if current_patio == 1:
             ret = await start_patio_1()
             if ret == 0:
