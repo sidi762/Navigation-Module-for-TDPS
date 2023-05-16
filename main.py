@@ -30,6 +30,7 @@ GPIO Pin usage:
 '''
 mode_switch = Pin('P9', Pin.IN, Pin.PULL_DOWN)
 RED_LED_PIN = 1
+GREEN_LED_PIN = 2
 BLUE_LED_PIN = 3
 
 sensor.reset()                      # Reset and initialize the sensor.
@@ -348,6 +349,13 @@ async def main():
         current_patio = 2 - mode_switch.value() # 1 for patio 1, 2 for patio 2
         status_data['Info_Patio'] = current_patio
         print("Current Patio: ", current_patio)
+        while messaging.master_is_ready() == 0:
+            await uasyncio.sleep_ms(1)
+            pyb.LED(BLUE_LED_PIN).on()
+            pyb.LED(GREEN_LED_PIN).on()
+            pass
+        pyb.LED(GREEN_LED_PIN).off()
+        pyb.LED(BLUE_LED_PIN).off()
         if current_patio == 1:
             ret = await start_patio_1()
             if ret == 0:
