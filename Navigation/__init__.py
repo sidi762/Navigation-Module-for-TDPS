@@ -132,18 +132,22 @@ class Navigator:
             self._is_turning = True
             # One shot mode: turn only once
             if one_shot:
-                if direction == 1 and target_heading < current_heading:
+                if (direction == 1 \
+                    and target_heading < current_heading \
+                    and abs(target_heading - current_heading) < 90):
                     break
-                elif direction == -1 and target_heading > current_heading:
+                elif (direction == -1
+                      and target_heading > current_heading
+                      and abs(target_heading - current_heading) < 90):
                     break
 
             print("Current heading: ", current_heading, ", target heading: ", target_heading)
             turn_control = self.calculate_pid(target_heading, direction)
             # Set the minimum turn control to 30 to avoid hanging
             if turn_control > 1 and turn_control < 30:
-                turn_control = 30
+                turn_control = 40
             elif turn_control < -1 and turn_control > -30:
-                turn_control = -30
+                turn_control = -40
             self._update_status_data(turn_control)
             self._control_output = turn_control
             current_heading = int(self._update_current_heading_from_imu(self._imu))
@@ -204,9 +208,9 @@ class Navigator:
             control_output = self.calculate_pid(self._target_heading)
             # Set the minimum turn control to 30 to avoid hanging
             if control_output > 1 and control_output < 30:
-                control_output = 30
+                control_output = 40
             elif control_output < -1 and control_output > -30:
-                control_output = -30
+                control_output = -40
             self._update_status_data(control_output)
             self._control_output = control_output
 
