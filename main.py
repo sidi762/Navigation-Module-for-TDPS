@@ -236,43 +236,52 @@ async def start_patio_2():
             print("Performing task 2")
             status_data['Info_Task'] = current_task
             navigator.turn_left_90()
-            stages = {
-                "forward": {"turn_degrees": 0, "velocity": 100},
-                "turn_left": {"turn_degrees": -90, "velocity": 0},
-                "forward2": {"turn_degrees": 0, "velocity": 100},
-                "turn_right": {"turn_degrees": 90, "velocity": 0},
-                "forward3": {"turn_degrees": 0, "velocity": 100},
-                "turn_left2": {"turn_degrees": -90, "velocity": 0},
-                "forward4": {"turn_degrees": 0, "velocity": 100},
-                "turn_right2": {"turn_degrees": 90, "velocity": 0},
-                "forward5": {"turn_degrees": 0, "velocity": 100},
-                "turn_left3": {"turn_degrees": -90, "velocity": 0},
-                "forward6": {"turn_degrees": 0, "velocity": 0}
-            }
-            current_stage = "forward"
-            current_stage_index = 0
-
-
             while True:
+                status_data['Control_Velocity'] = 100
+                distance = ultrasonic.get_distance()
+                if distance < 10:
+                    navigator.turn_left_90()
+                    break
+                await uasyncio.sleep_ms(1)
+            stages = {
+                "forward1": {"turn_degrees": 0, "velocity": 100},
+                "turn_right": {"turn_degrees": 90, "velocity": 0},
+                "forward2": {"turn_degrees": 0, "velocity": 100},
+                "turn_left2": {"turn_degrees": -90, "velocity": 0},
+                "forward3": {"turn_degrees": 0, "velocity": 100},
+                "turn_right2": {"turn_degrees": 90, "velocity": 0},
+                "forward4": {"turn_degrees": 0, "velocity": 100},
+                "turn_left3": {"turn_degrees": -90, "velocity": 0},
+                "forward5": {"turn_degrees": 0, "velocity": 0}
+            }
+            current_stage_index = 0
+            current_stage = "forward1"
+            print(current_stage)
+            while True:
+                status_data['Control_Velocity'] = 100
                 distance = ultrasonic.get_distance()
                 right_distance = ultrasonic_right.get_distance()
                 if distance < 10 or right_distance > 30:
                     current_stage_index += 1
                     current_stage = list(stages.keys())[current_stage_index]
-                if current_stage_index == 10:
-                    status_data['Control_Velocity'] = 0
-                    break
-                stage = stages[current_stage]
-                navigator.turn_degrees(stage["turn_degrees"])
+                    print(current_stage)
+                    if current_stage_index == 10:
+                        status_data['Control_Velocity'] = 0
+                        break
+
+                    stage = stages[current_stage]
+                    navigator.turn_degrees(stage["turn_degrees"])
+
                 status_data['Control_Velocity'] = stage["velocity"]
                 await uasyncio.sleep_ms(1000)
 
             #drop the ball
             status_data['Control_Ball'] = 1
             while True:
-
+                #await uasyncio.sleep_ms(1)
                 #check_task_done()
-                if patio2_task2_stop_signal:
+                if status_data['Control_Ball'] == 0 :
+                    #send怎么写？
                     current_task = 3
                     break
 
