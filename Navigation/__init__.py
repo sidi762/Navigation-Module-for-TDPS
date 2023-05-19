@@ -423,7 +423,7 @@ class LineTracking:
         if v == None:
             return 0
         else:
-            if v > 150: return 150
+            if v > 50: return 50
             elif v < 0: return 0
             else: return v
 
@@ -447,7 +447,6 @@ class LineTracking:
         magnitude_threshold = self._line_mag_thrs
         # Todo: finetune
         velocity_command = (magnitude - magnitude_threshold) * 2
-
         velocity_command = self._cilp_velocity_command(velocity_command)
         if magnitude < magnitude_threshold:
             # Todo: action to reaquire the line
