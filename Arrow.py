@@ -16,7 +16,7 @@ def arrow_detection():
 
     # Load template.
     # Template should be a small (eg. 32x32 pixels) grayscale image.
-    templates = ["/0.pgm", "/1.pgm", "/2.pgm", "/6.pgm"] #保存多个模板
+    templates = ["/left0.pgm", "/left1.pgm", "/left2.pgm", "/left3.pgm"] #保存多个模板
 
     clock = time.clock()
 
