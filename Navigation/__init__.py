@@ -176,7 +176,7 @@ class Navigator:
             target_heading += 360
         self._target_heading = target_heading
         print("Turning heading ", target_heading, "...")
-        uasyncio.create_task(self.turn_to_heading(target_heading, direction, one_shot))
+        uasyncio.create_task(self.turn_to_heading(target_heading, 0, one_shot))
         print("Turn queued, current heading ", current_heading)
         return 0
 
@@ -184,14 +184,14 @@ class Navigator:
         '''
             Turn right for 90 degrees
         '''
-        self.turn_degrees(90, 1, True)
+        self.turn_degrees(90, 1, False)
         return 0
 
     def turn_left_90(self):
         '''
             Turn left for 90 degrees
         '''
-        self.turn_degrees(90, -1, True)
+        self.turn_degrees(90, -1, False)
         return 0
 
     async def _navigate_async(self):
