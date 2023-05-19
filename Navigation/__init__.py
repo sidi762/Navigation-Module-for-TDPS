@@ -89,7 +89,7 @@ class Navigator:
 
         if self._imu:
             current_heading = self._update_current_heading_from_imu(self._imu)
-            current_heading = int(current_heading)
+            #current_heading = int(current_heading)
             if direction == 0:
                 # Automatically determine direction
                 direction, turn_err = self._get_dir_and_err(current_heading,
@@ -105,7 +105,7 @@ class Navigator:
                        be one of 0, 1, or -1, given ", direction, ").")
                 return 0
 
-            if abs(turn_err) <= 1:
+            if abs(turn_err) <= 0.5: # allow 0.5 degree error
                 turn_err = 0
             turn_control = self._turn_pid.get_pid(turn_err, 1)
             self._control_output = turn_control
@@ -145,9 +145,9 @@ class Navigator:
             turn_control = self.calculate_pid(target_heading, direction)
             # Set the minimum turn control to 30 to avoid hanging
             if turn_control > 1 and turn_control < 30:
-                turn_control = 40
+                turn_control = 60
             elif turn_control < -1 and turn_control > -30:
-                turn_control = -40
+                turn_control = -60
             self._update_status_data(turn_control)
             self._control_output = turn_control
             current_heading = int(self._update_current_heading_from_imu(self._imu))
