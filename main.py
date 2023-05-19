@@ -65,10 +65,14 @@ messaging = OpenMV_MessageHandler(uart, status_data, 1)
 # I2C
 i2c = I2C(2, freq=400000)
 imu = None
-try:
-    imu = BNO055(i2c)
-except:
-    pyb.LED(RED_LED_PIN).on()
+while imu == None:
+    # Wait for IMU to be ready
+    try:
+        imu = BNO055(i2c)
+    except:
+        pyb.LED(RED_LED_PIN).on()
+
+pyb.LED(RED_LED_PIN).off()
 
 dr = DeadReckoning()
 
@@ -387,9 +391,7 @@ async def main():
     while True:
         clock.tick()
         ret = 1
-        current_patio = 2 - mode_switch.value() # 1 for patio 1, 2 for patio 2
-        status_data['Info_Patio'] = current_patio
-        print("Current Patio: ", current_patio)
+        print("Waiting for master to be ready")
         while messaging.master_is_ready() == 0:
             await uasyncio.sleep_ms(1)
             pyb.LED(BLUE_LED_PIN).on()
@@ -397,6 +399,9 @@ async def main():
             pass
         pyb.LED(GREEN_LED_PIN).off()
         pyb.LED(BLUE_LED_PIN).off()
+        current_patio = 2 - mode_switch.value() # 1 for patio 1, 2 for patio 2
+        status_data['Info_Patio'] = current_patio
+        print("Current Patio: ", current_patio)
         if current_patio == 1:
             ret = await start_patio_1()
             if ret == 0:
