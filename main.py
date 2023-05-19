@@ -78,8 +78,8 @@ dr = DeadReckoning()
 
 line_tracking = LineTracking(sensor, draw=True)
 navigator = Navigator(imu, status_data, turn_pid_p = 0.6,
-                      turn_pid_i = 0.001, turn_pid_d = 0.001,
-                      turn_pid_imax = 2)
+                      turn_pid_i = 0.005, turn_pid_d = 0.005,
+                      turn_pid_imax = 3)
 odometer = Odometer()
 #line_tracking.start()
 
@@ -90,9 +90,14 @@ async def start_patio_1():
     print("In Patio 1")
     current_task = status_data['Info_Task']
     current_task = 1
+    status_data['Control_Cam_Pitch'] = 0
     patio1_task1_stop_signal = 0
     patio1_task2_stop_signal = 0
     patio1_task3_stop_signal = 0
+    yaw, roll, pitch = imu.euler()
+    init_heading = yaw
+    print("Patio 1 Initial Heading: ", init_heading)
+
     while True:
         await uasyncio.sleep_ms(1)
         if current_task == 1:
@@ -108,7 +113,6 @@ async def start_patio_1():
                 theta_err = line_tracking.get_theta_err()
                 status_data['Control_PID'] = control
                 status_data['Control_Angle'] = theta_err
-                status_data['Control_Velocity'] = 100
                 encoder_data = messaging.get_encoder_data()
                 await uasyncio.sleep(0)
                 odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
@@ -118,6 +122,13 @@ async def start_patio_1():
                 if odo > last_odo:
                     print(odo)
                     last_odo = odo
+                if odo < 600:
+                    status_data['Control_Velocity'] = velocity
+                elif odo < 2000:
+                    status_data['Control_Velocity'] = velocity * 3
+                else:
+                    status_data['Control_Velocity'] = velocity
+
                 #print(ultrasonic.get_distance())
                 #print(ultrasonic_right.get_distance())
                 if imu:
@@ -126,10 +137,13 @@ async def start_patio_1():
                     print("Heading: ", yaw)
                     #print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
                     #print("Position m: ", dr.position_x, dr.position_y, dr.position_z)
-
-                if odo > 2410:
+                front_distance = ultrasonic.get_distance()
+                print("front: ", front_distance)
+                if front_distance == 0:
+                    front_distance = 300
+                if odo >= 2600 or front_distance < 10:
                     # Arrived at the bridge
-                    # May need beacon
+                    # May need beacon, remove odo?
                     velocity = 0
                     status_data['Control_Velocity'] = velocity
                     current_task = 2
@@ -164,10 +178,16 @@ async def start_patio_1():
                     print("task_2_odo: ", task_2_odo)
                     last_odo = odo
 
+                velocity = 100
+                status_data['Control_Velocity'] = velocity
+                await uasyncio.sleep_ms(3000)
+                # Decrease the velocity to prevent the vehicle
+                # from filpping over when going down the bridge
                 velocity = 50
                 status_data['Control_Velocity'] = velocity
                 #check_task_done()
-                if patio1_task2_stop_signal:
+                front_distance = ultrasonic.get_distance()
+                if front_distance < 10:
                     velocity = 0
                     status_data['Control_Velocity'] = velocity
                     current_task = 3
@@ -182,7 +202,7 @@ async def start_patio_1():
             status_data['Info_Stage'] = 1
             navigator.turn_left_90()
             await uasyncio.sleep_ms(10000)
-            task_3_target_heading = navigator.get_target_heading()
+            task_3_target_heading = init_heading
             navigator.set_target_heading(task_3_target_heading)
             navigator.start_async()
 
