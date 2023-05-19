@@ -337,10 +337,10 @@ class LineTracking:
         """
         # Resume sensor settings
         sens = self._sensor
-        sens.set_pixformat(self._sensor_settings.pixformat)
-        sens.set_framesize(self._sensor_settings.framesize)
-        sens.set_vflip(self._sensor_settings.vflip)
-        sens.set_hmirror(self._sensor_settings.hmirror)
+        sens.set_pixformat(self._sensor_settings['pixformat'])
+        sens.set_framesize(self._sensor_settings['framesize'])
+        sens.set_vflip(self._sensor_settings['vflip'])
+        sens.set_hmirror(self._sensor_settings['hmirror'])
         sens.skip_frames(time = 100)     # Wait for settings take effect.
         self._is_started = False
 
