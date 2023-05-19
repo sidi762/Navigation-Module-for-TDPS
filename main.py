@@ -85,87 +85,128 @@ async def start_patio_1():
     status_data['Info_Patio'] = 1
     print("In Patio 1")
     current_task = status_data['Info_Task']
+    current_task = 1
     patio1_task1_stop_signal = 0
     patio1_task2_stop_signal = 0
     patio1_task3_stop_signal = 0
-    if current_task == 1:
-        status_data['Info_Task'] = 1
-        # Line following
-        status_data['Info_Stage'] = 1
-        print("Performing task 1")
-        while True:
-            #velocity = 100
-            control, velocity = line_tracking.calculate()
-            line = line_tracking.get_line()
-            theta_err = line_tracking.get_theta_err()
-            status_data['Control_PID'] = control
-            status_data['Control_Angle'] = theta_err
-            status_data['Control_Velocity'] = velocity
-            encoder_data = messaging.get_encoder_data()
-            await uasyncio.sleep(0)
-            odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
-                                              float(encoder_data['Info_Encoder_B']))
-            await uasyncio.sleep(0)
-            odo = odometer.get_odometer()
-            if odo > last_odo:
-                #print(odo)
-                last_odo = odo
-            print(ultrasonic.get_distance())
-            print(ultrasonic_right.get_distance())
-            if imu:
-                dr.dead_reckoning(imu)
-                #print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
-                #print("Position m: ", dr.position_x, dr.position_y, dr.position_z)
+    while True:
+        await uasyncio.sleep_ms(1)
+        if current_task == 1:
+            status_data['Info_Task'] = 1
+            # Line following
+            status_data['Info_Stage'] = 1
+            print("Performing task 1")
+            while True:
+                # velocity = 100
+                # First corner is at about 247.4 odometer
+                control, velocity = line_tracking.calculate()
+                line = line_tracking.get_line()
+                theta_err = line_tracking.get_theta_err()
+                status_data['Control_PID'] = control
+                status_data['Control_Angle'] = theta_err
+                status_data['Control_Velocity'] = 100
+                encoder_data = messaging.get_encoder_data()
+                await uasyncio.sleep(0)
+                odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
+                                                  float(encoder_data['Info_Encoder_B']))
+                await uasyncio.sleep(0)
+                odo = odometer.get_odometer()
+                if odo > last_odo:
+                    print(odo)
+                    last_odo = odo
+                #print(ultrasonic.get_distance())
+                #print(ultrasonic_right.get_distance())
+                if imu:
+                    dr.dead_reckoning(imu)
+                    yaw, roll, pitch = imu.euler()
+                    print("Heading: ", yaw)
+                    #print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
+                    #print("Position m: ", dr.position_x, dr.position_y, dr.position_z)
 
-            if patio1_task1_stop_signal:
-                velocity = 0
-                status_data['Control_Velocity'] = velocity
-                current_task = 2
-                line_tracking.end()
-                break
+                if odo > 2410:
+                    # Arrived at the bridge
+                    # May need beacon
+                    velocity = 0
+                    status_data['Control_Velocity'] = velocity
+                    current_task = 2
+                    line_tracking.end()
+                    break
+                await uasyncio.sleep_ms(1)
+
+        elif current_task == 2:
+            print("Performing task 2")
+            status_data['Info_Task'] = current_task
+            #Turn right 90 degress
+            status_data['Info_Stage'] = 1
             await uasyncio.sleep_ms(1)
+            navigator.turn_right_90()
+            await uasyncio.sleep_ms(10000)
 
-    elif current_task == 2:
-        status_data['Info_Task'] = current_task
+            odo = odometer.get_odometer()
+            task_2_odo_start = odo
+            last_odo = odo
+            # Crossing the bridge
+            status_data['Info_Stage'] = 2
+            print("Crossing the bridge")
+            while True:
+                await uasyncio.sleep_ms(1)
+                encoder_data = messaging.get_encoder_data()
+                odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
+                                                  float(encoder_data['Info_Encoder_B']))
+                odo = odometer.get_odometer()
+                print(odo)
+                task_2_odo = odo - task_2_odo_start
+                if odo > last_odo:
+                    print("task_2_odo: ", task_2_odo)
+                    last_odo = odo
 
-        #Turn right 90 degress
-        status_data['Info_Stage'] = 1
-        navigator.turn_right_90()
-
-
-        # Crossing the bridge
-        status_data['Info_Stage'] = 2
-        while True:
-            velocity = 50
-            status_data['Control_Velocity'] = velocity
-            #check_task_done()
-            if patio1_task2_stop_signal:
-                velocity = 0
+                velocity = 50
                 status_data['Control_Velocity'] = velocity
-                current_task = 3
-                break
+                #check_task_done()
+                if patio1_task2_stop_signal:
+                    velocity = 0
+                    status_data['Control_Velocity'] = velocity
+                    current_task = 3
+                    break
 
 
-    elif current_task == 3:
-        status_data['Info_Task'] = current_task
+        elif current_task == 3:
+            print("Performing task 3")
+            status_data['Info_Task'] = current_task
 
-        #Turn left 90 degress
-        status_data['Info_Stage'] = 1
-        navigator.turn_left_90()
+            #Turn left 90 degress
+            status_data['Info_Stage'] = 1
+            navigator.turn_left_90()
+            await uasyncio.sleep_ms(10000)
+            task_3_target_heading = navigator.get_target_heading()
+            navigator.set_target_heading(task_3_target_heading)
+            navigator.start_async()
 
-        # Passing the Door
-        status_data['Info_Stage'] = 2
-        while True:
-            velocity = 100
-            status_data['Control_Velocity'] = velocity
-            if patio1_task3_stop_signal:
-                velocity = 0
+            task_3_odo_start = odometer.get_odometer()
+            last_odo = task_3_odo_start
+
+            # Passing the Door
+            status_data['Info_Stage'] = 2
+            while True:
+                encoder_data = messaging.get_encoder_data()
+                odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
+                                                  float(encoder_data['Info_Encoder_B']))
+                odo = odometer.get_odometer()
+                task_3_odo = odo - task_3_odo_start
+                if odo > last_odo:
+                    print("task_3_odo: ", task_3_odo)
+                    last_odo = odo
+                velocity = 100
                 status_data['Control_Velocity'] = velocity
-                #Patio 1 done
-                current_patio = 0
-                current_task = 0
-                current_stage = 0
-                break
+                if patio1_task3_stop_signal:
+                    navigator.end_async()
+                    velocity = 0
+                    status_data['Control_Velocity'] = velocity
+                    #Patio 1 done
+                    current_patio = 0
+                    current_task = 0
+                    current_stage = 0
+                    break
 
     return 0
 
