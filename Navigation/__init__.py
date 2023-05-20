@@ -144,9 +144,9 @@ class Navigator:
             print("Current heading: ", current_heading, ", target heading: ", target_heading)
             turn_control = self.calculate_pid(target_heading, direction)
             # Set the minimum turn control to 30 to avoid hanging
-            if turn_control > 1 and turn_control < 30:
+            if turn_control > 1 and turn_control < 60:
                 turn_control = 60
-            elif turn_control < -1 and turn_control > -30:
+            elif turn_control < -1 and turn_control > -60:
                 turn_control = -60
             self._update_status_data(turn_control)
             self._control_output = turn_control
