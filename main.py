@@ -118,11 +118,11 @@ async def start_patio_1():
                 await uasyncio.sleep(0)
                 odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
                                                   float(encoder_data['Info_Encoder_B']))
-                await uasyncio.sleep(0)
                 odo = odometer.get_odometer()
                 if odo > last_odo:
-                    print(odo)
+                    print("odo: ", odo)
                     last_odo = odo
+
                 status_data['Control_Velocity'] = velocity
                 # if odo < 1200:
                 #     status_data['Control_Velocity'] = velocity
@@ -136,14 +136,14 @@ async def start_patio_1():
                 if imu:
                     dr.dead_reckoning(imu)
                     yaw, roll, pitch = imu.euler()
-                    print("Heading: ", yaw)
+                    #print("Heading: ", yaw)
                     #print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
                     #print("Position m: ", dr.position_x, dr.position_y, dr.position_z)
                 front_distance = ultrasonic.get_distance()
                 print("front: ", front_distance)
                 if front_distance == 0:
                     front_distance = 300
-                if front_distance < 10:
+                if front_distance < 15:
                     # Arrived at the bridge
                     # May need beacon, remove odo?
                     velocity = 0
@@ -164,6 +164,7 @@ async def start_patio_1():
 
             odo = odometer.get_odometer()
             task_2_odo_start = odo
+            print("task 2 initial odo: ", odo)
             last_odo = odo
             # Crossing the bridge
             status_data['Info_Stage'] = 2
@@ -174,25 +175,28 @@ async def start_patio_1():
                 odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
                                                   float(encoder_data['Info_Encoder_B']))
                 odo = odometer.get_odometer()
-                print(odo)
+                print("odo: ", odo)
                 task_2_odo = odo - task_2_odo_start
                 if odo > last_odo:
                     print("task_2_odo: ", task_2_odo)
                     last_odo = odo
 
-                velocity = 100
+                if task_2_odo < 30:
+                    velocity = 100
+                else:
+                    velocity = 30
                 status_data['Control_Velocity'] = velocity
-                await uasyncio.sleep_ms(3000)
+
                 # Decrease the velocity to prevent the vehicle
                 # from filpping over when going down the bridge
                 velocity = 50
                 status_data['Control_Velocity'] = velocity
                 #check_task_done()
                 front_distance = ultrasonic.get_distance()
-                if front_distance < 10:
+                if front_distance < 15:
                     # odo?
                     velocity = 0
-                    status_data['Control_Velocity'] = velocity
+                    status_data['Control_Velocity'] = 0
                     current_task = 3
                     break
 
@@ -200,7 +204,7 @@ async def start_patio_1():
         elif current_task == 3:
             print("Performing task 3")
             status_data['Info_Task'] = current_task
-
+            await uasyncio.sleep_ms(3000) # Wait for 3s
             #Turn left 90 degress
             status_data['Info_Stage'] = 1
             navigator.turn_left_90()
@@ -215,6 +219,7 @@ async def start_patio_1():
             # Passing the Door
             status_data['Info_Stage'] = 2
             while True:
+                await uasyncio.sleep_ms(1)
                 encoder_data = messaging.get_encoder_data()
                 odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
                                                   float(encoder_data['Info_Encoder_B']))

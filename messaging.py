@@ -19,9 +19,7 @@ class OpenMV_MessageHandler:
 
 
     _encoder_data = {'Info_Encoder_A': "0",
-                     'Info_Encoder_B': "0",
-                     'Info_Encoder_C': "0",
-                     'Info_Encoder_D': "0"}
+                     'Info_Encoder_B': "0"}
 
     _feedback_data = {'Info_Cam_Pitch': 0,
                       'Info_Ball': 0,
@@ -48,8 +46,6 @@ class OpenMV_MessageHandler:
         try:
             self._encoder_data['Info_Encoder_A'] = data['Info_Encoder_A']
             self._encoder_data['Info_Encoder_B'] = data['Info_Encoder_B']
-            self._encoder_data['Info_Encoder_C'] = data['Info_Encoder_C']
-            self._encoder_data['Info_Encoder_D'] = data['Info_Encoder_D']
         except:
             return False
         return True
