@@ -77,6 +77,7 @@ pyb.LED(RED_LED_PIN).off()
 dr = DeadReckoning()
 
 line_tracking = LineTracking(sensor, draw=True)
+line_tracking_white = LineTracking(sensor, draw=True)
 navigator = Navigator(imu, status_data, turn_pid_p = 0.8,
                       turn_pid_i = 0.1, turn_pid_d = 0.008,
                       turn_pid_imax = 10)
@@ -214,6 +215,7 @@ async def start_patio_1():
             navigator.start_async()
 
             task_3_odo_start = odometer.get_odometer()
+            print("task 3 initial odo: ", odo)
             last_odo = task_3_odo_start
 
             # Passing the Door
@@ -230,7 +232,8 @@ async def start_patio_1():
                     last_odo = odo
                 velocity = 100
                 status_data['Control_Velocity'] = velocity
-                if patio1_task3_stop_signal:
+                if task_3_odo > 300:
+                    # need tuning
                     navigator.end_async()
                     velocity = 0
                     status_data['Control_Velocity'] = velocity
