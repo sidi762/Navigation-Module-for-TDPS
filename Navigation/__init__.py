@@ -255,7 +255,9 @@ class LineTracking:
 
     def __init__(self, sensor, kernal_size = 1,
                  kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1],
-                 thresholds = [(100, 255)],
+                 enable_binary = False,
+                 b_thresholds = [(100, 255)],
+                 enable_adaptive = True,
                  rho_pid_p = 0.4, rho_pid_i = 0, rho_pid_d = 0,
                  rho_pid_imax = 0,
                  theta_pid_p = 0.001, theta_pid_i = 0, theta_pid_d = 0,
@@ -274,8 +276,11 @@ class LineTracking:
                         defaults to [-3, +0, +1,\
                                      -4, +8, +2,\
                                      -3, -2, +1]
-                thresholds: The thresholds for binary filtering,
-                            defaults to [(100, 255)].
+                enable_binary: Enables binary filtering, defaults to False
+                b_thresholds: The thresholds for binary filtering,
+                              defaults to [(100, 255)].
+                enable_adaptive: Enable adaptive thresholding for morph,
+                                 defaults to True.
                 rho_pid_p: The P factor for the rho PID controller
                         (for reducing the error of rho of the line).
                 rho_pid_i: The I factor for the rho PID controller.
@@ -303,7 +308,9 @@ class LineTracking:
         self._sensor = sensor
         self._kernal_size = kernal_size
         self._kernal = kernal
-        self._thresholds = thresholds
+        self._enable_binary = enable_binary
+        self._thresholds = b_thresholds
+        self._enable_adaptive = enable_adaptive
         self._sensor_settings = {'pixformat': 0, 'framesize': 0}
         self._is_started = False
         self._line_mag_thrs = line_mag_thrs
@@ -365,14 +372,15 @@ class LineTracking:
         self._sensor_settings['hmirror'] = self._sensor.get_hmirror()
 
 
-    def _apply_filter(self, img, threshold=True):
+    def _apply_filter(self, img, threshold=self._enable_adaptive):
         #img.gamma_corr(gamma=1.0)
         img.morph(self._kernal_size, \
                   self._kernal, \
                   threshold=threshold, \
                   offset=2, \
                   invert=True)
-        #img.binary(self._thresholds)
+        if self._enable_binary:
+            img.binary(self._thresholds)
         img.erode(1, threshold = 3)
         return img
 
