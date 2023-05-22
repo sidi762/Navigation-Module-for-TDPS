@@ -269,11 +269,12 @@ async def start_patio_2():
 
     status_data['Info_Patio'] = 2
     print("In Patio 2")
-    current_task = status_data['Info_Task']
+    #current_task = status_data['Info_Task']
     patio2_task1_stop_signal = 0
     patio2_task2_stop_signal = 0
     patio2_task3_stop_signal = 0
     current_task = 2
+
     while(True):
         #await uasyncio.sleep(0)
         if current_task == 1:
@@ -325,12 +326,12 @@ async def start_patio_2():
             status_data['Control_Velocity']=0
 
             while True:
-                status_data['Control_Velocity'] = 100
+                status_data['Control_Velocity'] = 150
                 distance = ultrasonic.get_distance()
                 print("distance is", distance)
-                if distance < 20:
+                if distance < 30:
                     status_data['Control_Velocity'] = 0
-                    navigator.turn_left_90()
+                    navigator.turn_degrees(-90)
                     await uasyncio.sleep_ms(5000)
                     break
                 await uasyncio.sleep_ms(1)
@@ -339,10 +340,10 @@ async def start_patio_2():
             print(current_stage)
 
             while current_stage =="forward1":
-                status_data['Control_Velocity'] = 100
+                status_data['Control_Velocity'] = 150
                 right_distance = ultrasonic_right.get_distance()
                 print("The right distance is", right_distance)
-                if right_distance > 30:
+                if right_distance > 80 and right_distance!=300:
                     current_stage = "turn_right1"
                     print(current_stage)
                     status_data['Control_Velocity'] = 0
@@ -350,15 +351,15 @@ async def start_patio_2():
                 await uasyncio.sleep_ms(1)
 
             while current_stage == "turn_right1":
-                navigator.turn_right_90()
+                navigator.turn_degrees(86)
                 current_stage = "forward2"
                 await uasyncio.sleep_ms(5000)
 
             while current_stage == "forward2":
-                status_data['Control_Velocity'] = 100
+                status_data['Control_Velocity'] = 150
                 distance = ultrasonic.get_distance()
                 print("The distance is", distance)
-                if distance < 20:
+                if distance < 35:
                     current_stage = "turn_left1"
                     print(current_stage)
                     status_data['Control_Velocity'] = 0
@@ -371,10 +372,10 @@ async def start_patio_2():
                 await uasyncio.sleep_ms(5000)
 
             while current_stage == "forward3":
-                status_data['Control_Velocity'] = 100
+                status_data['Control_Velocity'] = 150
                 right_distance = ultrasonic_right.get_distance()
                 print("The right distance is", right_distance)
-                if right_distance > 30:
+                if right_distance > 80 and right_distance!=300:
                     current_stage = "turn_right2"
                     print(current_stage)
                     status_data['Control_Velocity'] = 0
@@ -382,7 +383,7 @@ async def start_patio_2():
                 await uasyncio.sleep_ms(1)
 
             while current_stage == "turn_right2":
-                navigator.turn_right_90()
+                navigator.turn_degrees(86)
                 current_stage = "forward4"
                 await uasyncio.sleep_ms(5000)
 
@@ -392,7 +393,7 @@ async def start_patio_2():
                 status_data['Control_Velocity'] = 100
                 distance = ultrasonic.get_distance()
                 print("The distance is", distance)
-                if distance < 20:
+                if distance < 35:
                     current_stage = "turn_left2"
                     print(current_stage)
                     status_data['Control_Velocity'] = 0
@@ -422,16 +423,22 @@ async def start_patio_2():
                     current_task = 3
                     break
                 await uasyncio.sleep_ms(1)
+            await uasyncio.sleep_ms(1)
 
         elif current_task == 3:
-            velocity = 100
+            #velocity = 100
             status_data['Info_Task'] = current_task
+            current_stage= "turn_left"
             ###nav to communication spot
-            navigator.turn_left_90()
-            current_stage = "forward"
+            while current_stage == "turn_left":
+                navigator.turn_left_90()
+                current_stage = "forward"
+                await uasyncio.sleep_ms(5000)
+
+            #current_stage = "forward"
             print(current_stage)
             while current_stage=="forward":
-                status_data['Control_Velocity']=100
+                status_data['Control_Velocity']=150
                 distance = ultrasonic.get_distance()
                 print(distance)
                 if distance <30 :
@@ -441,23 +448,29 @@ async def start_patio_2():
                 await uasyncio.sleep_ms(1)
 
             print(current_stage)
-            navigator.turn_left_90()
-            current_stage = "backward"
+            while current_stage == "turn_left":
+                navigator.turn_left_90()
+                current_stage = "backward"
+                await uasyncio.sleep_ms(5000)
+
 
             while current_stage=="backward":
                 print(current_stage)
-                status_data['Control_Velocity']= -100
+                status_data['Control_Velocity']= -140
                 right_distance = ultrasonic_right.get_distance()
-                if right_distance > 30 :
-                    await uasyncio.sleep_ms(2000)
+                if right_distance > 30 and right_distance != 300:
+                    #await uasyncio.sleep_ms(2000)
                     status_data['Control_Velocity'] = 0
                     current_stage = "turn_right"
                     break
                 await uasyncio.sleep_ms(1)
 
             print(current_stage)
-            navigator.turn_right_90()
-            current_stage = "final to communication"
+            while current_stage == "turn_right":
+                navigator.turn_left_90()
+                current_stage = "final to communication"
+                await uasyncio.sleep_ms(5000)
+
 
             if current_stage =="final to communication":
                 print(current_stage)
