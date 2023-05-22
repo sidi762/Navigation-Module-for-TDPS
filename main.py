@@ -263,235 +263,244 @@ async def move_forward_until_hit():
             status_data['Control_Velocity'] = 100
         await uasyncio.sleep_ms(1)
 
-async def start_patio_2():
+async def patio_2_task_1():
+    # Arrow detection
+    status_data['Info_Task'] = 1
+    print("Performing task 1")
+    status_data['Control_Velocity'] = 0
+    while messaging.master_is_ready() == 0:
+        await uasyncio.sleep_ms(1)
+        pyb.LED(BLUE_LED_PIN).on()
+        pyb.LED(RED_LED_PIN).on()
+        pass
 
-    #差：##1.右超声波 ##2. 调整角度
+    ###Moveforward by ultrasonic
+    while True:
+        status_data['Control_Velocity'] = 100
+        distance = ultrasonic.get_distance()
+        print("distance is", distance)
+        if distance < 20:
+            status_data['Control_Velocity'] = 0
+            break
+        await uasyncio.sleep_ms(1)
+
+    ###arrowdetection
+    while True:
+        arrow_direction = arrow_detection();
+        if arrow_direction:
+            print("arrow detected as:",arrow_direction)
+            break
+        await uasyncio.sleep_ms(1)
+
+    turning_angles = {"left": -135, "up":-90,"right": -45}
+
+    # turn left or right based on the arrow direction
+    if arrow_direction in turning_angles:
+        angle = turning_angles[arrow_direction]
+        navigator.turn_degrees(-angle, -1) # negative angle to turn left
+        await move_forward_until_hit()
+        navigator.turn_degrees(-angle, -1)
+
+    status_data['Control_Velocity']=0
+    return 0
+
+async def patio_2_task_2():
+    print("Performing task 2")
+    status_data['Info_Task'] = 2
+    status_data['Control_Velocity'] = 0
+
+    while True:
+        # task 2 stage 1: move forward until reaching
+        # the fence
+        status_data['Control_Velocity'] = 150
+        distance = ultrasonic.get_distance()
+        print("distance is", distance)
+        if distance < 30:
+            status_data['Control_Velocity'] = 0
+            navigator.turn_left_90()
+            await uasyncio.sleep_ms(5000)
+            break
+        await uasyncio.sleep_ms(1)
+
+
+    current_stage = "forward1"
+    print(current_stage)
+
+    # stage: "forward1" Todo: add some control on heading
+    while current_stage =="forward1":
+        status_data['Control_Velocity'] = 150
+        right_distance = ultrasonic_right.get_distance()
+        print("The right distance is", right_distance)
+        if right_distance > 80 and right_distance!=300:
+            current_stage = "turn_right1"
+            print(current_stage)
+            status_data['Control_Velocity'] = 0
+            break
+        await uasyncio.sleep_ms(1)
+
+    # stage: "turn_right1"
+    navigator.turn_degrees(86) #？
+    await uasyncio.sleep_ms(5000)
+    current_stage = "forward2"
+    print(current_stage)
+
+    while current_stage == "forward2":
+        status_data['Control_Velocity'] = 150
+        distance = ultrasonic.get_distance()
+        print("The distance is", distance)
+        if distance < 35:
+            current_stage = "turn_left1"
+            print(current_stage)
+            status_data['Control_Velocity'] = 0
+            break
+        await uasyncio.sleep_ms(1)
+
+    # stage: "turn_left1"
+    navigator.turn_left_90()
+    await uasyncio.sleep_ms(5000)
+    current_stage = "forward3"
+    print(current_stage)
+
+    while current_stage == "forward3":
+        status_data['Control_Velocity'] = 150
+        right_distance = ultrasonic_right.get_distance()
+        print("The right distance is", right_distance)
+        if right_distance > 80 and right_distance!=300:
+            current_stage = "turn_right2"
+            print(current_stage)
+            status_data['Control_Velocity'] = 0
+            break
+        await uasyncio.sleep_ms(1)
+
+    # stage: "turn_right2"
+    navigator.turn_degrees(86) #?
+    await uasyncio.sleep_ms(5000)
+    current_stage = "forward4"
+    print(current_stage)
+
+    while current_stage == "forward4":
+        status_data['Control_Velocity'] = 100
+        distance = ultrasonic.get_distance()
+        print("The distance is", distance)
+        if distance < 35:
+            current_stage = "turn_left2"
+            print(current_stage)
+            status_data['Control_Velocity'] = 0
+            break
+        await uasyncio.sleep_ms(1)
+
+    # stage: "turn_left2"
+    navigator.turn_left_90()
+    await uasyncio.sleep_ms(5000)
+    current_stage = "forward5"
+    print(current_stage)
+
+    # stage: "forward5" Todo: add some control on heading
+    while current_stage == "forward5":
+        status_data['Control_Velocity'] = 100
+        distance = ultrasonic.get_distance()
+        print("The distance is", distance)
+        if distance < 20 :
+            print("Bucket Detected!")
+            status_data['Control_Velocity'] = 0
+            break
+        await uasyncio.sleep_ms(1)
+
+    #drop the ball
+    status_data['Control_Ball'] = 1
+    while True:
+        # Wait until the ball is dropped and the claw is retracted
+        await uasyncio.sleep_ms(1)
+        if status_data['Control_Ball'] == 0:
+            break
+
+    return 0 #task 2 done
+
+async def patio_2_task_3():
+    status_data['Info_Task'] = 3
+    print("Performing task 3")
+    current_stage = "turn_left"
+    ###nav to communication spot
+
+    # Turn left 90 degrees
+    navigator.turn_left_90()
+    await uasyncio.sleep_ms(5000)
+    current_stage = "forward"
+    print(current_stage)
+
+    while current_stage == "forward":
+        await uasyncio.sleep_ms(1)
+        status_data['Control_Velocity'] = 150
+        distance = ultrasonic.get_distance()
+        print("Front distance: ", distance)
+        if distance < 30 :
+            status_data['Control_Velocity'] = 0
+            current_stage = "turn_left"
+            print(current_stage)
+            break
+
+    navigator.turn_left_90()
+    await uasyncio.sleep_ms(5000)
+    current_stage = "backward"
+    print(current_stage)
+
+    while current_stage=="backward":
+        await uasyncio.sleep_ms(1)
+        print(current_stage)
+        status_data['Control_Velocity']= -140
+        right_distance = ultrasonic_right.get_distance()
+        if right_distance > 30 and right_distance != 300:
+            #await uasyncio.sleep_ms(2000)
+            status_data['Control_Velocity'] = 0
+            current_stage = "turn_right"
+            print(current_stage)
+            break
+
+    navigator.turn_right_90()
+    await uasyncio.sleep_ms(5000)
+    current_stage = "final to communication"
+    print(current_stage)
+
+    # Drive to communication spot
+    status_data['Control_Velocity'] = 100
+    await uasyncio.sleep_ms(5000)
+    status_data['Control_Velocity'] = 0
+    print("communication spot arrived!")
+
+    # Communication
+    status_data['Control_Comm'] = 1
+
+    # Drive to finish line
+    status_data['Control_Velocity'] = 100
+    await uasyncio.sleep_ms(5000)
+    status_data['Control_Velocity'] = 0
+    print("communication spot arrived!")
+
+
+async def start_patio_2():
+    #差：调整角度
 
     status_data['Info_Patio'] = 2
     print("In Patio 2")
     #current_task = status_data['Info_Task']
-    patio2_task1_stop_signal = 0
-    patio2_task2_stop_signal = 0
-    patio2_task3_stop_signal = 0
     current_task = 2
 
     while(True):
         #await uasyncio.sleep(0)
         if current_task == 1:
-            # Arrow detection
-            status_data['Info_Task'] = 1
-            print("Performing task 1")
-            status_data['Control_Velocity']=0
-            while messaging.master_is_ready() == 0:
-                await uasyncio.sleep_ms(1)
-                pyb.LED(BLUE_LED_PIN).on()
-                pyb.LED(RED_LED_PIN).on()
-                pass
-
-            ###Moveforward by ultrasonic
-            while True:
-                status_data['Control_Velocity'] = 100
-                distance = ultrasonic.get_distance()
-                print("distance is", distance)
-                if distance < 20:
-                    status_data['Control_Velocity'] = 0
-                    break
-                await uasyncio.sleep_ms(1)
-
-            ###arrowdetection
-            while True:
-                arrow_direction = arrow_detection();
-                if arrow_direction:
-                    print("arrow detected as:",arrow_direction)
-                    break
-                await uasyncio.sleep_ms(1)
-
-            turning_angles = {"left": -135, "up":-90,"right": -45}
-
-            # turn left or right based on the arrow direction
-            if arrow_direction in turning_angles:
-                angle = turning_angles[arrow_direction]
-                navigator.turn_degrees(-angle, -1) # negative angle to turn left
-                await move_forward_until_hit()
-                navigator.turn_degrees(-angle, -1)
-
-            status_data['Control_Velocity']=0
+            await patio_2_task_1()
             current_task = 2
-            await uasyncio.sleep_ms(1)
-
         elif current_task == 2:
             #navigate to task2
-            print("Performing task 2")
-            status_data['Info_Task'] = current_task
-            status_data['Control_Velocity']=0
-
-            while True:
-                status_data['Control_Velocity'] = 150
-                distance = ultrasonic.get_distance()
-                print("distance is", distance)
-                if distance < 30:
-                    status_data['Control_Velocity'] = 0
-                    navigator.turn_degrees(-90)
-                    await uasyncio.sleep_ms(5000)
-                    break
-                await uasyncio.sleep_ms(1)
-
-            current_stage = "forward1"
-            print(current_stage)
-
-            while current_stage =="forward1":
-                status_data['Control_Velocity'] = 150
-                right_distance = ultrasonic_right.get_distance()
-                print("The right distance is", right_distance)
-                if right_distance > 80 and right_distance!=300:
-                    current_stage = "turn_right1"
-                    print(current_stage)
-                    status_data['Control_Velocity'] = 0
-                    break
-                await uasyncio.sleep_ms(1)
-
-            while current_stage == "turn_right1":
-                navigator.turn_degrees(86)
-                current_stage = "forward2"
-                await uasyncio.sleep_ms(5000)
-
-            while current_stage == "forward2":
-                status_data['Control_Velocity'] = 150
-                distance = ultrasonic.get_distance()
-                print("The distance is", distance)
-                if distance < 35:
-                    current_stage = "turn_left1"
-                    print(current_stage)
-                    status_data['Control_Velocity'] = 0
-                    break
-                await uasyncio.sleep_ms(1)
-
-            while current_stage == "turn_left1":
-                navigator.turn_left_90()
-                current_stage = "forward3"
-                await uasyncio.sleep_ms(5000)
-
-            while current_stage == "forward3":
-                status_data['Control_Velocity'] = 150
-                right_distance = ultrasonic_right.get_distance()
-                print("The right distance is", right_distance)
-                if right_distance > 80 and right_distance!=300:
-                    current_stage = "turn_right2"
-                    print(current_stage)
-                    status_data['Control_Velocity'] = 0
-                    break
-                await uasyncio.sleep_ms(1)
-
-            while current_stage == "turn_right2":
-                navigator.turn_degrees(86)
-                current_stage = "forward4"
-                await uasyncio.sleep_ms(5000)
-
-           #navigator.turn_right_90()
-
-            while current_stage == "forward4":
-                status_data['Control_Velocity'] = 100
-                distance = ultrasonic.get_distance()
-                print("The distance is", distance)
-                if distance < 35:
-                    current_stage = "turn_left2"
-                    print(current_stage)
-                    status_data['Control_Velocity'] = 0
-                    break
-                await uasyncio.sleep_ms(1)
-
-            while current_stage == "turn_left2":
-                navigator.turn_left_90()
-                current_stage = "forward5"
-                await uasyncio.sleep_ms(5000)
-
-            while current_stage == "forward5":
-                status_data['Control_Velocity'] = 100
-                distance = ultrasonic.get_distance()
-                print("The distance is", distance)
-                if distance < 20 :
-                    print("Bucket Detected!")
-                    status_data['Control_Velocity'] = 0
-                    break
-                await uasyncio.sleep_ms(1)
-
-            #drop the ball
-            status_data['Control_Ball'] = 1
-            while True:
-
-                if status_data['Control_Ball'] == 0:
-                    current_task = 3
-                    break
-                await uasyncio.sleep_ms(1)
-            await uasyncio.sleep_ms(1)
-
+            await patio_2_task_2()
+            current_task = 3
         elif current_task == 3:
-            #velocity = 100
-            status_data['Info_Task'] = current_task
-            current_stage= "turn_left"
-            ###nav to communication spot
-            while current_stage == "turn_left":
-                navigator.turn_left_90()
-                current_stage = "forward"
-                await uasyncio.sleep_ms(5000)
+            await patio_2_task_3()
+            current_task = 300
+        elif current_task == 300:
+            break # all tasks are done
 
-            #current_stage = "forward"
-            print(current_stage)
-            while current_stage=="forward":
-                status_data['Control_Velocity']=150
-                distance = ultrasonic.get_distance()
-                print(distance)
-                if distance <30 :
-                    status_data['Control_Velocity'] = 0
-                    current_stage = "turn_left"
-                    break
-                await uasyncio.sleep_ms(1)
-
-            print(current_stage)
-            while current_stage == "turn_left":
-                navigator.turn_left_90()
-                current_stage = "backward"
-                await uasyncio.sleep_ms(5000)
-
-
-            while current_stage=="backward":
-                print(current_stage)
-                status_data['Control_Velocity']= -140
-                right_distance = ultrasonic_right.get_distance()
-                if right_distance > 30 and right_distance != 300:
-                    #await uasyncio.sleep_ms(2000)
-                    status_data['Control_Velocity'] = 0
-                    current_stage = "turn_right"
-                    break
-                await uasyncio.sleep_ms(1)
-
-            print(current_stage)
-            while current_stage == "turn_right":
-                navigator.turn_left_90()
-                current_stage = "final to communication"
-                await uasyncio.sleep_ms(5000)
-
-
-            if current_stage =="final to communication":
-                print(current_stage)
-                status_data['Control_Velocity']=100
-                await uasyncio.sleep_ms(5000)
-                break
-
-            print("communication spot arrived!")
-            #communication
-            status_data['Control_Comm']=1
-
-    return 0;
-
-
-def move_forward(duration):
-    velocity = 100
-    start_time = time.time()
-    while time.time() - start_time < duration:
-        status_data['Control_Velocity'] = velocity
-    status_data['Control_Velocity'] = 0
-
+    return 0
 
 async def main():
     '''
@@ -514,11 +523,12 @@ async def main():
         if current_patio == 1:
             ret = await start_patio_1()
             if ret == 0:
-                continue
+                break
         elif current_patio == 2:
             ret = await start_patio_2()
             if ret == 0:
-                continue
+                break
+    return 0
 
 
 #Todo: Soft-reset (Or maybe hard-reset?)
