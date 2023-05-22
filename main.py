@@ -144,7 +144,7 @@ async def start_patio_1():
                 print("front: ", front_distance)
                 if front_distance == 0:
                     front_distance = 300
-                if front_distance < 15:
+                if front_distance < 20:
                     # Arrived at the bridge
                     # May need beacon, remove odo?
                     velocity = 0
@@ -182,15 +182,17 @@ async def start_patio_1():
                     print("task_2_odo: ", task_2_odo)
                     last_odo = odo
 
-                if task_2_odo < 30:
-                    velocity = 100
-                else:
-                    velocity = 30
+                #if task_2_odo < 150:
+                #    velocity = 100
+                #    status_data['Control_Velocity'] = velocity
+                #else:
+                #    velocity = 60
+                #    status_data['Control_Velocity'] = velocity
+
+
+                velocity = 100
                 status_data['Control_Velocity'] = velocity
 
-                # Decrease the velocity to prevent the vehicle
-                # from filpping over when going down the bridge
-                velocity = 50
                 status_data['Control_Velocity'] = velocity
                 #check_task_done()
                 front_distance = ultrasonic.get_distance()
