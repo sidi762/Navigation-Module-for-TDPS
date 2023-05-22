@@ -232,11 +232,12 @@ async def start_patio_2():
 
     status_data['Info_Patio'] = 2
     print("In Patio 2")
-    current_task = status_data['Info_Task']
+    #current_task = status_data['Info_Task']
     patio2_task1_stop_signal = 0
     patio2_task2_stop_signal = 0
     patio2_task3_stop_signal = 0
     current_task = 2
+
     while(True):
         #await uasyncio.sleep(0)
         if current_task == 1:
@@ -288,10 +289,10 @@ async def start_patio_2():
             status_data['Control_Velocity']=0
 
             while True:
-                status_data['Control_Velocity'] = 100
+                status_data['Control_Velocity'] = 50
                 distance = ultrasonic.get_distance()
                 print("distance is", distance)
-                if distance < 20:
+                if distance < 40:
                     status_data['Control_Velocity'] = 0
                     navigator.turn_left_90()
                     await uasyncio.sleep_ms(5000)
@@ -305,7 +306,7 @@ async def start_patio_2():
                 status_data['Control_Velocity'] = 100
                 right_distance = ultrasonic_right.get_distance()
                 print("The right distance is", right_distance)
-                if right_distance > 30:
+                if right_distance > 80:
                     current_stage = "turn_right1"
                     print(current_stage)
                     status_data['Control_Velocity'] = 0
@@ -321,7 +322,7 @@ async def start_patio_2():
                 status_data['Control_Velocity'] = 100
                 distance = ultrasonic.get_distance()
                 print("The distance is", distance)
-                if distance < 20:
+                if distance < 35:
                     current_stage = "turn_left1"
                     print(current_stage)
                     status_data['Control_Velocity'] = 0
@@ -337,7 +338,7 @@ async def start_patio_2():
                 status_data['Control_Velocity'] = 100
                 right_distance = ultrasonic_right.get_distance()
                 print("The right distance is", right_distance)
-                if right_distance > 30:
+                if right_distance > 80:
                     current_stage = "turn_right2"
                     print(current_stage)
                     status_data['Control_Velocity'] = 0
@@ -355,7 +356,7 @@ async def start_patio_2():
                 status_data['Control_Velocity'] = 100
                 distance = ultrasonic.get_distance()
                 print("The distance is", distance)
-                if distance < 20:
+                if distance < 35:
                     current_stage = "turn_left2"
                     print(current_stage)
                     status_data['Control_Velocity'] = 0
@@ -385,6 +386,7 @@ async def start_patio_2():
                     current_task = 3
                     break
                 await uasyncio.sleep_ms(1)
+            await uasyncio.sleep_ms(1)
 
         elif current_task == 3:
             velocity = 100
