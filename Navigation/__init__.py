@@ -89,7 +89,7 @@ class Navigator:
 
         if self._imu:
             current_heading = self._update_current_heading_from_imu(self._imu)
-            current_heading = int(current_heading)
+            #current_heading = int(current_heading)
             if direction == 0:
                 # Automatically determine direction
                 direction, turn_err = self._get_dir_and_err(current_heading,
@@ -105,7 +105,7 @@ class Navigator:
                        be one of 0, 1, or -1, given ", direction, ").")
                 return 0
 
-            if abs(turn_err) <= 1:
+            if abs(turn_err) <= 0.5: # allow 0.5 degree error
                 turn_err = 0
             turn_control = self._turn_pid.get_pid(turn_err, 1)
             self._control_output = turn_control
@@ -144,10 +144,10 @@ class Navigator:
             print("Current heading: ", current_heading, ", target heading: ", target_heading)
             turn_control = self.calculate_pid(target_heading, direction)
             # Set the minimum turn control to 30 to avoid hanging
-            if turn_control > 1 and turn_control < 30:
-                turn_control = 40
-            elif turn_control < -1 and turn_control > -30:
-                turn_control = -40
+            if turn_control > 1 and turn_control < 60:
+                turn_control = 60
+            elif turn_control < -1 and turn_control > -60:
+                turn_control = -60
             self._update_status_data(turn_control)
             self._control_output = turn_control
             current_heading = int(self._update_current_heading_from_imu(self._imu))
@@ -176,7 +176,7 @@ class Navigator:
             target_heading += 360
         self._target_heading = target_heading
         print("Turning heading ", target_heading, "...")
-        uasyncio.create_task(self.turn_to_heading(target_heading, direction, one_shot))
+        uasyncio.create_task(self.turn_to_heading(target_heading, 0, one_shot))
         print("Turn queued, current heading ", current_heading)
         return 0
 
@@ -184,14 +184,14 @@ class Navigator:
         '''
             Turn right for 90 degrees
         '''
-        self.turn_degrees(90, 1, True)
+        self.turn_degrees(90, 1, False)
         return 0
 
     def turn_left_90(self):
         '''
             Turn left for 90 degrees
         '''
-        self.turn_degrees(90, -1, True)
+        self.turn_degrees(90, -1, False)
         return 0
 
     async def _navigate_async(self):
@@ -255,7 +255,9 @@ class LineTracking:
 
     def __init__(self, sensor, kernal_size = 1,
                  kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1],
-                 thresholds = [(100, 255)],
+                 enable_binary = False,
+                 b_thresholds = [(100, 255)],
+                 enable_adaptive = True,
                  rho_pid_p = 0.4, rho_pid_i = 0, rho_pid_d = 0,
                  rho_pid_imax = 0,
                  theta_pid_p = 0.001, theta_pid_i = 0, theta_pid_d = 0,
@@ -274,8 +276,11 @@ class LineTracking:
                         defaults to [-3, +0, +1,\
                                      -4, +8, +2,\
                                      -3, -2, +1]
-                thresholds: The thresholds for binary filtering,
-                            defaults to [(100, 255)].
+                enable_binary: Enables binary filtering, defaults to False
+                b_thresholds: The thresholds for binary filtering,
+                              defaults to [(100, 255)].
+                enable_adaptive: Enable adaptive thresholding for morph,
+                                 defaults to True.
                 rho_pid_p: The P factor for the rho PID controller
                         (for reducing the error of rho of the line).
                 rho_pid_i: The I factor for the rho PID controller.
@@ -303,7 +308,9 @@ class LineTracking:
         self._sensor = sensor
         self._kernal_size = kernal_size
         self._kernal = kernal
-        self._thresholds = thresholds
+        self._enable_binary = enable_binary
+        self._thresholds = b_thresholds
+        self._enable_adaptive = enable_adaptive
         self._sensor_settings = {'pixformat': 0, 'framesize': 0}
         self._is_started = False
         self._line_mag_thrs = line_mag_thrs
@@ -337,10 +344,10 @@ class LineTracking:
         """
         # Resume sensor settings
         sens = self._sensor
-        sens.set_pixformat(self._sensor_settings.pixformat)
-        sens.set_framesize(self._sensor_settings.framesize)
-        sens.set_vflip(self._sensor_settings.vflip)
-        sens.set_hmirror(self._sensor_settings.hmirror)
+        sens.set_pixformat(self._sensor_settings['pixformat'])
+        sens.set_framesize(self._sensor_settings['framesize'])
+        sens.set_vflip(self._sensor_settings['vflip'])
+        sens.set_hmirror(self._sensor_settings['hmirror'])
         sens.skip_frames(time = 100)     # Wait for settings take effect.
         self._is_started = False
 
@@ -365,14 +372,15 @@ class LineTracking:
         self._sensor_settings['hmirror'] = self._sensor.get_hmirror()
 
 
-    def _apply_filter(self, img, threshold=True):
+    def _apply_filter(self, img, threshold=self._enable_adaptive):
         #img.gamma_corr(gamma=1.0)
         img.morph(self._kernal_size, \
                   self._kernal, \
                   threshold=threshold, \
                   offset=2, \
                   invert=True)
-        #img.binary(self._thresholds)
+        if self._enable_binary:
+            img.binary(self._thresholds)
         img.erode(1, threshold = 3)
         return img
 
@@ -423,7 +431,7 @@ class LineTracking:
         if v == None:
             return 0
         else:
-            if v > 100: return 100
+            if v > 50: return 50
             elif v < 0: return 0
             else: return v
 
@@ -446,8 +454,7 @@ class LineTracking:
         magnitude = self._line_magnitude
         magnitude_threshold = self._line_mag_thrs
         # Todo: finetune
-        velocity_command = (magnitude - magnitude_threshold) * 3
-
+        velocity_command = (magnitude - magnitude_threshold) * 2
         velocity_command = self._cilp_velocity_command(velocity_command)
         if magnitude < magnitude_threshold:
             # Todo: action to reaquire the line
