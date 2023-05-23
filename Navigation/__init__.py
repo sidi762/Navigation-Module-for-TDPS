@@ -372,8 +372,10 @@ class LineTracking:
         self._sensor_settings['hmirror'] = self._sensor.get_hmirror()
 
 
-    def _apply_filter(self, img, threshold=self._enable_adaptive):
+    def _apply_filter(self, img, threshold=None):
         #img.gamma_corr(gamma=1.0)
+        if threshold == None:
+            threshold = self._enable_adaptive
         img.morph(self._kernal_size, \
                   self._kernal, \
                   threshold=threshold, \
