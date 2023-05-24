@@ -269,7 +269,6 @@ async def patio_2_task_1():
     # Arrow detection
     status_data['Info_Task'] = 1
     print("Performing task 1")
-    #print("navigation waiting to be aligned")
     status_data['Control_Velocity'] = 0
     await uasyncio.sleep_ms(1)
 
@@ -289,28 +288,34 @@ async def patio_2_task_1():
             #break
         #await uasyncio.sleep_ms(1)
 
+
     #move forward to detection spot by counting seconds
-    status_data['Control_Velocity'] = 50
-    await uasyncio.sleep_ms(3000)
-    status_data['Control_Velocity'] = 0
-    await uasyncio.sleep_ms(3000)
-    print("first spot")
+    #status_data['Control_Velocity'] = 50
+    #await uasyncio.sleep_ms(3000)
 
-        ###arrowdetection_test
-    while True:
-        arrow_direction = "left"
-        if arrow_direction == "left":
-            print("left")
+    #status_data['Control_Velocity'] = 0
+    #await uasyncio.sleep_ms(3000)
+    #print("Detection spot arrived")
+
+    ###arrowdetection
+
+    status_data['Control_Cam_Pitch'] = 1
+    await uasyncio.sleep_ms(1000)
+
+    while status_data['Control_Velocity'] == 0:
+        #status_data['Control_Velocity'] = 0
+        print("detecting")
+        arrow_direction = arrow_detection()
+        if arrow_direction:
+            if "left" in arrow_direction:
+                arrow_direction = "left"
+            elif "right" in arrow_direction:
+                arrow_direction = "right"
+            elif "up" in arrow_direction:
+                arrow_direction = "up"
+            print("arrow detected as:",arrow_direction)
             break
-        await uasyncio.sleep_ms(1)
-
-    # ###arrowdetection
-    # while True:
-    #     arrow_direction = arrow_detection();
-    #     if arrow_direction:
-    #         print("arrow detected as:",arrow_direction)
-    #         break
-    #         await uasyncio.sleep_ms(1)
+            await uasyncio.sleep_ms(1)
 
     turning_angles = {"left": -135, "up": -90,"right": -45}
 
@@ -318,22 +323,22 @@ async def patio_2_task_1():
     if arrow_direction in turning_angles:
         angle = turning_angles.get(arrow_direction)
         status_data['Control_Angle'] = -angle # negative angle to turn left
-        await uasyncio.sleep_ms(3000)
-        while True:
-            await uasyncio.sleep_ms(1)
-            feedback = messaging.get_feedback_data()
-            if feedback['Info_Angle'] == "1":
-                break
+        await uasyncio.sleep_ms(4000)
+        #while True:
+            #await uasyncio.sleep_ms(1)
+            #feedback = messaging.get_feedback_data()
+            #if feedback['Info_Angle'] == "1":
+                #break
         await move_forward_until_hit()
-        #turn back
-        status_data['Control_Angle'] = -angle
-        while True:
-            await uasyncio.sleep_ms(1)
-            feedback = messaging.get_feedback_data()
-            if feedback['Info_Angle'] == "2":
-                break
+        ##turn back
+        #status_data['Control_Angle'] = -angle
+        #while True:
+            #await uasyncio.sleep_ms(1)
+            #feedback = messaging.get_feedback_data()
+            #if feedback['Info_Angle'] == "2":
+                #break
 
-        await uasyncio.sleep_ms(10000)
+        #await uasyncio.sleep_ms(10000)
 
     status_data['Control_Velocity'] = 0
     return 0
