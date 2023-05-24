@@ -1,5 +1,6 @@
 import time, sensor, image
 from image import SEARCH_EX, SEARCH_DS
+import pyb
 
 def arrow_detection():
     # Reset sensor
@@ -16,15 +17,22 @@ def arrow_detection():
 
     # Load template.
     # Template should be a small (eg. 32x32 pixels) grayscale image.
-    templates = ["/left0.pgm", "/left1.pgm", "/left2.pgm", "/left3.pgm"] #保存多个模板
+    templates = ["/left0.pgm", "/left1.pgm", "/left2.pgm", "/left3.pgm",
+                 "/up0.pgm", "/up1.pgm", "/up2.pgm", "/up3.pgm",
+                 "/right0.pgm", "/right1.pgm", "/right2.pgm", "/right3.pgm",] #保存多个模板
 
     clock = time.clock()
-
+    start_time = pyb.millis()
     # Run template matching
     while (True):
         clock.tick()
         img = sensor.snapshot()
-
+        current_time = pyb.millis()
+        detection_time = current_time - start_time
+        print("detection_time is", detection_time)
+        if detection_time > 300:
+            print("have detected too long")
+            return None
         # find_template(template, threshold, [roi, step, search])
         # ROI: The region of interest tuple (x, y, w, h).
         # Step: The loop step used (y+=step, x+=step) use a bigger step to make it faster.

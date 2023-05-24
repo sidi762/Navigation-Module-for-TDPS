@@ -300,9 +300,17 @@ async def patio_2_task_1():
     ###arrowdetection
 
     status_data['Control_Cam_Pitch'] = 1
-    await uasyncio.sleep_ms(1000)
 
-    while status_data['Control_Velocity'] == 0:
+    while True:
+            await uasyncio.sleep_ms(1)
+            feedback = messaging.get_feedback_data()
+            if feedback['Info_Cam_Pitch'] == "1":
+                break
+
+
+    #while status_data['Control_Velocity'] == 0:
+    while True:
+        await uasyncio.sleep_ms(1)
         #status_data['Control_Velocity'] = 0
         print("detecting")
         arrow_direction = arrow_detection()
@@ -315,28 +323,32 @@ async def patio_2_task_1():
                 arrow_direction = "up"
             print("arrow detected as:",arrow_direction)
             break
-            await uasyncio.sleep_ms(1)
+        else:
+            arrow_direction = "left"
+            break
 
-    turning_angles = {"left": -135, "up": -90,"right": -45}
+    turning_angles = {"left": -135, "up": -90, "right": -45}
 
     # turn left or right based on the arrow direction
     if arrow_direction in turning_angles:
         angle = turning_angles.get(arrow_direction)
-        status_data['Control_Angle'] = -angle # negative angle to turn left
-        await uasyncio.sleep_ms(4000)
-        #while True:
-            #await uasyncio.sleep_ms(1)
-            #feedback = messaging.get_feedback_data()
-            #if feedback['Info_Angle'] == "1":
-                #break
+        status_data['Control_Angle'] = angle # negative angle to turn left
+        await uasyncio.sleep_ms(5000)
+        while True:
+            await uasyncio.sleep_ms(1)
+            feedback = messaging.get_feedback_data()
+            if feedback['Info_Turning'] == "1":
+                status_data['Control_Angle'] = 0
+                break
         await move_forward_until_hit()
-        ##turn back
-        #status_data['Control_Angle'] = -angle
-        #while True:
-            #await uasyncio.sleep_ms(1)
-            #feedback = messaging.get_feedback_data()
-            #if feedback['Info_Angle'] == "2":
-                #break
+        #turn back
+        status_data['Control_Angle'] = -angle
+        while True:
+            await uasyncio.sleep_ms(1)
+            feedback = messaging.get_feedback_data()
+            if feedback['Info_Turning'] == "2":
+                status_data['Control_Angle'] = 0
+                break
 
         #await uasyncio.sleep_ms(10000)
 
