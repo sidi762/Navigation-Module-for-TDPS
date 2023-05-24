@@ -261,7 +261,7 @@ async def move_forward_until_hit():
                 break
         else:
             #move forward
-            status_data['Control_Velocity'] = 100
+            status_data['Control_Velocity'] = 50
         await uasyncio.sleep_ms(1)
 
 task2_pid = PID(p=1, i=0, d=0)
@@ -269,7 +269,10 @@ async def patio_2_task_1():
     # Arrow detection
     status_data['Info_Task'] = 1
     print("Performing task 1")
+    #print("navigation waiting to be aligned")
     status_data['Control_Velocity'] = 0
+    await uasyncio.sleep_ms(1)
+
     while messaging.master_is_ready() == 0:
         await uasyncio.sleep_ms(1)
         pyb.LED(BLUE_LED_PIN).on()
@@ -277,33 +280,62 @@ async def patio_2_task_1():
         pass
 
     ###Moveforward by ultrasonic
+    #while True:
+        #status_data['Control_Velocity'] = 50
+        #distance = ultrasonic.get_distance()
+        #print("distance is", distance)
+        #if distance < 30:
+            #status_data['Control_Velocity'] = 0
+            #break
+        #await uasyncio.sleep_ms(1)
+
+    #move forward to detection spot by counting seconds
+    status_data['Control_Velocity'] = 50
+    await uasyncio.sleep_ms(3000)
+    status_data['Control_Velocity'] = 0
+    await uasyncio.sleep_ms(3000)
+    print("first spot")
+
+        ###arrowdetection_test
     while True:
-        status_data['Control_Velocity'] = 100
-        distance = ultrasonic.get_distance()
-        print("distance is", distance)
-        if distance < 20:
-            status_data['Control_Velocity'] = 0
+        arrow_direction = "left"
+        if arrow_direction == "left":
+            print("left")
             break
         await uasyncio.sleep_ms(1)
 
-    ###arrowdetection
-    while True:
-        arrow_direction = arrow_detection();
-        if arrow_direction:
-            print("arrow detected as:",arrow_direction)
-            break
-        await uasyncio.sleep_ms(1)
+    # ###arrowdetection
+    # while True:
+    #     arrow_direction = arrow_detection();
+    #     if arrow_direction:
+    #         print("arrow detected as:",arrow_direction)
+    #         break
+    #         await uasyncio.sleep_ms(1)
 
-    turning_angles = {"left": -135, "up":-90,"right": -45}
+    turning_angles = {"left": -135, "up": -90,"right": -45}
 
     # turn left or right based on the arrow direction
     if arrow_direction in turning_angles:
-        angle = turning_angles[arrow_direction]
-        navigator.turn_degrees(-angle, -1) # negative angle to turn left
+        angle = turning_angles.get(arrow_direction)
+        status_data['Control_Angle'] = -angle # negative angle to turn left
+        await uasyncio.sleep_ms(3000)
+        while True:
+            await uasyncio.sleep_ms(1)
+            feedback = messaging.get_feedback_data()
+            if feedback['Info_Angle'] == "1":
+                break
         await move_forward_until_hit()
-        navigator.turn_degrees(-angle, -1)
+        #turn back
+        status_data['Control_Angle'] = -angle
+        while True:
+            await uasyncio.sleep_ms(1)
+            feedback = messaging.get_feedback_data()
+            if feedback['Info_Angle'] == "2":
+                break
 
-    status_data['Control_Velocity']=0
+        await uasyncio.sleep_ms(10000)
+
+    status_data['Control_Velocity'] = 0
     return 0
 
 async def patio_2_task_2():
@@ -318,11 +350,11 @@ async def patio_2_task_2():
         # task 2 stage 1: move forward until reaching
         # the fence
         await uasyncio.sleep_ms(5)
-        status_data['Control_Velocity'] = 150
+        status_data['Control_Velocity'] = 100
         distance = ultrasonic.get_distance()
         print("distance is", distance)
         await uasyncio.sleep_ms(5)
-        if distance < 30:
+        if distance < 30 and distance != 0 :
             status_data['Control_Velocity'] = 0
             navigator.turn_left_90()
             task2_target_heading = task2_init_heading - 90
@@ -514,7 +546,7 @@ async def start_patio_2():
     status_data['Info_Patio'] = 2
     print("In Patio 2")
     #current_task = status_data['Info_Task']
-    current_task = 2
+    current_task = 1
 
     while(True):
         #await uasyncio.sleep(0)
