@@ -23,7 +23,7 @@ class OpenMV_MessageHandler:
 
     _feedback_data = {'Info_Cam_Pitch': 0,
                       'Info_Ball': 0,
-                      'Info_Turned': 0,
+                      'Info_Turning': 0,
                       'Info_Comm': 0}
 
     def _debug_print(self, *args, **kwargs):
@@ -56,7 +56,7 @@ class OpenMV_MessageHandler:
             self._feedback_data['Info_Cam_Pitch'] = data['Info_Cam_Pitch']
             self._feedback_data['Info_Ball'] = data['Info_Ball']
             self._feedback_data['Info_Comm'] = data['Info_Comm']
-            self._feedback_data['Info_Turned'] = data['Info_Turned']
+            self._feedback_data['Info_Turning'] = data['Info_Turning']
         except:
             return False
         return True
