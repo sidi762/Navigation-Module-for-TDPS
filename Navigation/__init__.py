@@ -113,7 +113,7 @@ class Navigator:
         else:
             return 0
 
-    async def turn_to_heading(self, target_heading, direction = 0, one_shot = False):
+    async def turn_to_heading(self, target_heading = 500, direction = 0, one_shot = False):
         '''
             Turn to a given heading
             Turns right for direction = 1, left for direction = -1,
@@ -122,6 +122,8 @@ class Navigator:
             This is a coroutine so that the command message
             can be sent to the master control
         '''
+        if target_heading == 500:
+            target_heading = self._target_heading
         current_heading = int(self._update_current_heading_from_imu(self._imu))
         print("Current heading: ", current_heading, ", target heading: ", target_heading)
         while target_heading != current_heading:
