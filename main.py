@@ -145,7 +145,7 @@ async def start_patio_1():
                 print("front: ", front_distance)
                 if front_distance == 0:
                     front_distance = 300
-                if front_distance < 20:
+                if front_distance < 25:
                     # Arrived at the bridge
                     # May need beacon, remove odo?
                     velocity = 0
@@ -194,10 +194,12 @@ async def start_patio_1():
                 velocity = 100
                 status_data['Control_Velocity'] = velocity
 
-                status_data['Control_Velocity'] = velocity
                 #check_task_done()
                 front_distance = ultrasonic.get_distance()
-                if front_distance < 15:
+                print("front: ", front_distance)
+                if front_distance == 0:
+                    front_distance = 300
+                if front_distance < 25:
                     # odo?
                     velocity = 0
                     status_data['Control_Velocity'] = 0
@@ -264,7 +266,6 @@ async def move_forward_until_hit():
             status_data['Control_Velocity'] = 50
         await uasyncio.sleep_ms(1)
 
-task2_pid = PID(p=1, i=0, d=0)
 async def patio_2_task_1():
     # Arrow detection
     status_data['Info_Task'] = 1
@@ -290,12 +291,11 @@ async def patio_2_task_1():
 
 
     #move forward to detection spot by counting seconds
-    #status_data['Control_Velocity'] = 50
-    #await uasyncio.sleep_ms(3000)
+    status_data['Control_Velocity'] = 70
+    await uasyncio.sleep_ms(12000)
 
-    #status_data['Control_Velocity'] = 0
-    #await uasyncio.sleep_ms(3000)
-    #print("Detection spot arrived")
+    status_data['Control_Velocity'] = 0
+    print("Detection spot arrived")
 
     ###arrowdetection
 
@@ -355,12 +355,23 @@ async def patio_2_task_1():
     status_data['Control_Velocity'] = 0
     return 0
 
+
+def control_right_distance(target_distance = 30):
+    task2_pid = PID(p=3, i=0.4, d=0)
+    right_distance = ultrasonic_right.get_distance()
+    print("The right distance is", right_distance)
+    if right_distance == 300:
+        right_distance = target_distance
+    steering_pid = task2_pid.get_pid(right_distance - target_distance, 1)
+    status_data['Control_PID'] = steering_pid
+
 async def patio_2_task_2():
     print("Performing task 2")
     status_data['Info_Task'] = 2
     status_data['Control_Velocity'] = 0
     yaw, roll, pitch = imu.euler()
-    task2_init_heading = yaw
+    #task2_init_heading = yaw
+    task2_init_heading = 192
     task2_target_heading = task2_init_heading
 
     while True:
@@ -371,11 +382,13 @@ async def patio_2_task_2():
         distance = ultrasonic.get_distance()
         print("distance is", distance)
         await uasyncio.sleep_ms(5)
-        if distance < 30 and distance != 0 :
+        if distance < 30 and distance != 0:
             status_data['Control_Velocity'] = 0
             navigator.turn_left_90()
-            task2_target_heading = task2_init_heading - 90
-            await uasyncio.sleep_ms(5000)
+            #task2_target_heading = task2_init_heading - 90
+            #navigator.set_target_heading(task2_target_heading)
+            #await navigator.turn_to_heading(task2_target_heading, 0, False)
+            await uasyncio.sleep_ms(6000)
             break
 
     current_stage = "forward1"
@@ -386,20 +399,20 @@ async def patio_2_task_2():
 
     # stage: "forward1" Todo: add some control on heading
     navigator.set_target_heading(task2_target_heading)
-    while current_stage =="forward1":
+    while current_stage == "forward1":
+        await uasyncio.sleep_ms(1)
         status_data['Control_Velocity'] = 150
+        control_right_distance()
         right_distance = ultrasonic_right.get_distance()
-        steering_pid = task2_pid.get_pid(right_distance - 20, 1)
-        print("The right distance is", right_distance)
         if right_distance > 80 and right_distance != 300:
             current_stage = "turn_right1"
             print(current_stage)
             status_data['Control_Velocity'] = 0
             break
-        await uasyncio.sleep_ms(1)
+
 
     # stage: "turn_right1"
-    navigator.turn_degrees(86) #？
+    navigator.turn_right_90() #？
     task2_target_heading += 90
     await uasyncio.sleep_ms(5000)
     current_stage = "forward2"
@@ -410,6 +423,7 @@ async def patio_2_task_2():
         status_data['Control_Velocity'] = 150
         distance = ultrasonic.get_distance()
         print("The distance is", distance)
+        control_right_distance()
         if distance < 35 and distance != 0:
             current_stage = "turn_left1"
             print(current_stage)
@@ -429,18 +443,16 @@ async def patio_2_task_2():
     await uasyncio.sleep_ms(3000)
     while current_stage == "forward3":
         status_data['Control_Velocity'] = 150
-        right_distance = ultrasonic_right.get_distance()
-        steering_pid = task2_pid.get_pid(right_distance - 20, 1)
-        print("The right distance is", right_distance)
+        control_right_distance()
         if right_distance > 80 and right_distance != 300:
             current_stage = "turn_right2"
             print(current_stage)
-            status_data['Control_Velocity'] = 0
+            #status_data['Control_Velocity'] = 0
             break
         await uasyncio.sleep_ms(1)
 
     # stage: "turn_right2"
-    navigator.turn_degrees(86) #?
+    navigator.turn_right_90() #?
     task2_target_heading += 90
     await uasyncio.sleep_ms(5000)
     current_stage = "forward4"
@@ -448,11 +460,9 @@ async def patio_2_task_2():
 
     navigator.set_target_heading(task2_target_heading)
     while current_stage == "forward4":
-        status_data['Control_Velocity'] = 100
+        status_data['Control_Velocity'] = 70
         distance = ultrasonic.get_distance()
-        right_distance = ultrasonic_right.get_distance()
-        steering_pid = task2_pid.get_pid(right_distance - 20, 1)
-        status_data['Control_PID'] = steering_pid
+        control_right_distance()
         print("The distance is", distance)
         if distance < 35 and distance != 0:
             current_stage = "turn_left2"
@@ -472,8 +482,7 @@ async def patio_2_task_2():
     while current_stage == "forward5":
         status_data['Control_Velocity'] = 100
         distance = ultrasonic.get_distance()
-        right_distance = ultrasonic_right.get_distance()
-        steering_pid = task2_pid.get_pid(right_distance - 20, 1)
+        control_right_distance()
         print("The distance is", distance)
         if distance < 20 :
             print("Bucket Detected!")
