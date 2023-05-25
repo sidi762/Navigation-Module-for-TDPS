@@ -265,7 +265,7 @@ async def move_forward_until_hit():
             #distance = ultrasonic.get_distance()
             #if distance > 100:
                 # board has been hit
-                # break
+            break
         else:
             #move forward
             status_data['Control_Velocity'] = 150
