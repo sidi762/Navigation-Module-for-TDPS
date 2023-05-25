@@ -220,7 +220,7 @@ async def start_patio_1():
             navigator.start_async()
 
             task_3_odo_start = odometer.get_odometer()
-            print("task 3 initial odo: ", odo)
+            print("task 3 initial odo: ", task_3_odo_start)
             last_odo = task_3_odo_start
 
             # Passing the Door
@@ -265,7 +265,7 @@ async def move_forward_until_hit():
             #distance = ultrasonic.get_distance()
             #if distance > 100:
                 # board has been hit
-                break
+                # break
         else:
             #move forward
             status_data['Control_Velocity'] = 150
