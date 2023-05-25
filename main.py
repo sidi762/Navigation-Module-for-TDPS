@@ -254,14 +254,19 @@ async def move_forward_until_hit():
         print("trying to hit board")
         distance = ultrasonic.get_distance()
         if distance < 5:
+            status_data['Control_Velocity'] = 0
             await uasyncio.sleep_ms(1000)  # wait for the car to collide with the board
-            distance = ultrasonic.get_distance()
-            if distance > 100:
+            status_data['Control_Velocity'] = -20
+            await uasyncio.sleep_ms(3000)
+            #if distance < 5:
+            #status_data['Control_Velocity'] = 0
+            #distance = ultrasonic.get_distance()
+            #if distance > 100:
                 # board has been hit
                 break
         else:
             #move forward
-            status_data['Control_Velocity'] = 50
+            status_data['Control_Velocity'] = 150
         await uasyncio.sleep_ms(1)
 
 task2_pid = PID(p=1, i=0, d=0)
@@ -278,20 +283,20 @@ async def patio_2_task_1():
         pyb.LED(RED_LED_PIN).on()
         pass
 
-    ###Moveforward by ultrasonic
-    #while True:
-        #status_data['Control_Velocity'] = 50
-        #distance = ultrasonic.get_distance()
-        #print("distance is", distance)
-        #if distance < 30:
-            #status_data['Control_Velocity'] = 0
-            #break
-        #await uasyncio.sleep_ms(1)
+    ##Moveforward by ultrasonic
+    while True:
+        status_data['Control_Velocity'] = 50
+        distance = ultrasonic.get_distance()
+        print("distance is", distance)
+        if distance < 30:
+            status_data['Control_Velocity'] = 0
+            break
+        await uasyncio.sleep_ms(1)
 
 
     #move forward to detection spot by counting seconds
     #status_data['Control_Velocity'] = 50
-    #await uasyncio.sleep_ms(3000)
+    #await uasyncio.sleep_ms(10000)
 
     #status_data['Control_Velocity'] = 0
     #await uasyncio.sleep_ms(3000)
@@ -313,7 +318,16 @@ async def patio_2_task_1():
         await uasyncio.sleep_ms(1)
         #status_data['Control_Velocity'] = 0
         print("detecting")
-        arrow_direction = arrow_detection()
+        start_time = pyb.millis()
+        while True:
+            await uasyncio.sleep_ms(1)
+            arrow_direction = arrow_detection()
+            current_time = pyb.millis()
+            detection_time = current_time - start_time
+            print("outside detection_time is", detection_time)
+            if detection_time > 3000:
+                print("have detected too long")
+                break
         if arrow_direction:
             if "left" in arrow_direction:
                 arrow_direction = "left"
@@ -333,13 +347,14 @@ async def patio_2_task_1():
     if arrow_direction in turning_angles:
         angle = turning_angles.get(arrow_direction)
         status_data['Control_Angle'] = angle # negative angle to turn left
-        await uasyncio.sleep_ms(5000)
         while True:
             await uasyncio.sleep_ms(1)
             feedback = messaging.get_feedback_data()
             if feedback['Info_Turning'] == "1":
                 status_data['Control_Angle'] = 0
                 break
+
+
         await move_forward_until_hit()
         #turn back
         status_data['Control_Angle'] = -angle
@@ -371,7 +386,7 @@ async def patio_2_task_2():
         distance = ultrasonic.get_distance()
         print("distance is", distance)
         await uasyncio.sleep_ms(5)
-        if distance < 30 and distance != 0 :
+        if distance < 25 and distance != 0 :
             status_data['Control_Velocity'] = 0
             navigator.turn_left_90()
             task2_target_heading = task2_init_heading - 90
