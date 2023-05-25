@@ -324,11 +324,11 @@ async def patio_2_task_1():
         angle = turning_angles.get(arrow_direction)
         status_data['Control_Angle'] = -angle # negative angle to turn left
         await uasyncio.sleep_ms(4000)
-        #while True:
-            #await uasyncio.sleep_ms(1)
-            #feedback = messaging.get_feedback_data()
-            #if feedback['Info_Angle'] == "1":
-                #break
+        while True:
+            await uasyncio.sleep_ms(1)
+            feedback = messaging.get_feedback_data()
+            if feedback['Info_Turning'] == "1":
+                break
         await move_forward_until_hit()
         ##turn back
         #status_data['Control_Angle'] = -angle
