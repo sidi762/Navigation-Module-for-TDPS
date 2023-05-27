@@ -24,7 +24,7 @@ from pid import PID
 class Navigator:
 
     def __init__(self, imu, status_data_ref,
-                 turn_pid_p = 0.6, turn_pid_i = 0.001,
+                 turn_pid_p = 0.8, turn_pid_i = 0.001,
                  turn_pid_d = 0.001, turn_pid_imax = 5):
         self._imu = imu
         self._status_data_ref = status_data_ref
@@ -378,6 +378,7 @@ class LineTracking:
         #img.gamma_corr(gamma=1.0)
         if threshold == None:
             threshold = self._enable_adaptive
+        img.midpoint(1, bias=1)
         img.morph(self._kernal_size, \
                   self._kernal, \
                   threshold=threshold, \
