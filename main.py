@@ -286,10 +286,16 @@ async def patio_2_task_1():
 
     ##Moveforward by ultrasonic
     while True:
-        status_data['Control_Velocity'] = 50
         distance = ultrasonic.get_distance()
         print("distance is", distance)
-        if distance < 30:
+        if distance > 60:
+            status_data['Control_Velocity'] = 120
+        if distance < 60 and distance > 40:
+            status_data['Control_Velocity'] = 60
+        elif distance < 40:
+            status_data['Control_Velocity'] = 40
+
+        if distance < 20:
             status_data['Control_Velocity'] = 0
             break
         await uasyncio.sleep_ms(1)
@@ -372,7 +378,7 @@ async def patio_2_task_1():
     return 0
 
 
-def control_right_distance(target_distance = 20, p = 0.7, i = 0.8, d = 7.5, mul = 1):
+def control_right_distance(target_distance = 20, p = 0.7, i = 0.8, d = 7.8, mul = 1.0):
     task2_pid = PID(p=p, i=i, d=d)
     right_distance = ultrasonic_right.get_distance()
     print("The right distance is", right_distance)
@@ -517,7 +523,7 @@ async def patio_2_task_2():
         print("The distance is", distance)
         right_distance = ultrasonic_right.get_distance()
         if right_distance < 40:
-            control_right_distance(20, 0.8, 0.8, 6, 1.5)
+            control_right_distance(20, 0.7, 1, 8, 1.5)
         if distance < 35 and distance != 0:
             current_stage = "turn_left2"
             print(current_stage)
@@ -583,7 +589,8 @@ async def patio_2_task_3():
 
     yaw, roll, pitch = imu.euler()
     task3_init_heading = yaw
-    navigator.set_target_heading(task3_init_heading)
+    # Or 13 degrees
+    navigator.set_target_heading(13)
 
     current_stage = "forward"
     print(current_stage)
@@ -593,7 +600,7 @@ async def patio_2_task_3():
         status_data['Control_Velocity'] = 150
         distance = ultrasonic.get_distance()
         print("Front distance: ", distance)
-        if distance < 30 :
+        if distance < 20 :
             navigator.end_async()
             status_data['Control_Velocity'] = 0
             current_stage = "turn_left"
@@ -625,6 +632,7 @@ async def patio_2_task_3():
     #await uasyncio.sleep_ms(5000)
     current_stage = "final to communication"
     print(current_stage)
+    await uasyncio.sleep_ms(1000)
 
     # Drive to communication spot
     status_data['Control_Velocity'] = 100
@@ -634,7 +642,16 @@ async def patio_2_task_3():
 
     # Communication
     status_data['Control_Comm'] = 1
-    await uasyncio.sleep_ms(5000)
+    feedback = messaging.get_feedback_data()
+    while feedback['Info_Comm'] == "0":
+        await uasyncio.sleep_ms(1)
+        pyb.LED(BLUE_LED_PIN).toggle()
+        feedback = messaging.get_feedback_data()
+        if feedback['Info_Comm'] == "1":
+            pyb.LED(BLUE_LED_PIN).off()
+            break
+
+
     print("Driving to finishing line!")
 
     # Drive to finish line
@@ -651,7 +668,7 @@ async def start_patio_2():
     status_data['Info_Patio'] = 2
     print("In Patio 2")
     #current_task = status_data['Info_Task']
-    current_task = 2
+    current_task = 1
 
     while(True):
         #await uasyncio.sleep(0)

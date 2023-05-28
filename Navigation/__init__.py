@@ -209,10 +209,10 @@ class Navigator:
             await uasyncio.sleep_ms(1)
             control_output = self.calculate_pid(self._target_heading)
             # Set the minimum turn control to 30 to avoid hanging
-            if control_output > 1 and control_output < 30:
-                control_output = 40
-            elif control_output < -1 and control_output > -30:
-                control_output = -40
+            if control_output > 1 and control_output < 15:
+                control_output = 15
+            elif control_output < -1 and control_output > -15:
+                control_output = -15
             self._update_status_data(control_output)
             self._control_output = control_output
 

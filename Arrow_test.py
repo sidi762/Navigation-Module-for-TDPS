@@ -14,8 +14,6 @@ def arrow_detection():
     # You can set windowing to reduce the search image.
     #sensor.set_windowing(((640-80)//2, (480-60)//2, 80, 60))
     sensor.set_pixformat(sensor.GRAYSCALE)
-    sensor.set_vflip(True)
-    sensor.set_hmirror(True)
 
     # Load template.
     # Template should be a small (eg. 32x32 pixels) grayscale image.
@@ -32,7 +30,7 @@ def arrow_detection():
         current_time = pyb.millis()
         detection_time = current_time - start_time
         print("detection_time is", detection_time)
-        if detection_time > 10000:
+        if detection_time > 3000:
             print("have detected too long")
             return None
         # find_template(template, threshold, [roi, step, search])
@@ -45,8 +43,11 @@ def arrow_detection():
         for t in templates:
             pyb.LED(1).toggle()
             template = image.Image(t)
+            template_width = template.width() + 10
+            template_height = template.height() + 10
+            print(t)
             #对每个模板遍历进行模板匹配
-            r = img.find_template(template, 0.85, step=4, search=SEARCH_EX) #, roi=(10, 0, 60, 60))
+            r = img.find_template(template, 0.85, step=4, search=SEARCH_EX)
             #find_template(template, threshold, [roi, step, search]),threshold中
             #的0.85是相似度阈值,roi是进行匹配的区域（左上顶点为（10，0），长80宽60的矩形），
             #注意roi的大小要比模板图片大，比frambuffer小。
@@ -54,3 +55,5 @@ def arrow_detection():
             if r:
                 img.draw_rectangle(r)
                 return t
+
+arrow_detection()
