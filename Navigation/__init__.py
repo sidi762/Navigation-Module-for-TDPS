@@ -297,12 +297,14 @@ class AprilTagTracking:
     def _set_sensor_for_april_tag(self):
         sens = self._sensor
         sens.set_pixformat(self._sensor.RGB565)
-        sens.set_framesize(self._sensor.HQVGA) # we run out of memory if the resolution is much bigger...
-        sens.set_auto_gain(False)  # must turn this off to prevent image washout...
-        sens.set_auto_whitebal(False)  # must turn this off to prevent image washout...
+        sens.set_framesize(self._sensor.HQVGA)
+        # must turn this off to prevent image washout...
+        sens.set_auto_gain(False)
+        # must turn this off to prevent image washout
+        sens.set_auto_whitebal(False)
         sens.set_vflip(True)
         sens.set_hmirror(True)
-        sens.skip_frames(time = 100)     # Wait for settings take effect.
+        sens.skip_frames(time = 100) # Wait for settings to take effect.
 
     def _store_sensor_settings(self):
         self._sensor_settings['pixformat'] = self._sensor.get_pixformat()
@@ -317,7 +319,8 @@ class AprilTagTracking:
         img = self._sensor.snapshot()
         self._img = img
         cx_error = None
-        for tag in img.find_apriltags(): # defaults to TAG36H11 without "families".
+        # Defaults to TAG36H11 without "families".
+        for tag in img.find_apriltags():
             if self._draw:
                 img.draw_rectangle(tag.rect(), color = (255, 0, 0))
                 img.draw_cross(tag.cx(), tag.cy(), color = (0, 255, 0))
@@ -440,7 +443,8 @@ class LineTracking:
 
     def _set_sensor_for_line_detection(self):
         sens = self._sensor
-        sens.set_pixformat(self._sensor.GRAYSCALE) # Set pixel format to GRAYSCALE
+        # Set pixel format to GRAYSCALE
+        sens.set_pixformat(self._sensor.GRAYSCALE)
         sens.set_framesize(self._sensor.HQVGA)
         sens.set_vflip(True)
         sens.set_hmirror(True)
