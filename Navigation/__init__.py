@@ -338,6 +338,8 @@ class LineTracking:
 
     def __init__(self, sensor, kernal_size = 1,
                  kernal = [-3, +0, +1, -4, +8, +2, -3, -2, +1],
+                 enable_midpoint = True,
+                 enable_morph = True,
                  enable_binary = False,
                  b_thresholds = [(100, 255)],
                  enable_adaptive = True,
@@ -391,6 +393,8 @@ class LineTracking:
         self._sensor = sensor
         self._kernal_size = kernal_size
         self._kernal = kernal
+        self._enable_midpoint = enable_midpoint
+        self._enable_morph = enable_morph
         self._enable_binary = enable_binary
         self._thresholds = b_thresholds
         self._enable_adaptive = enable_adaptive
@@ -459,12 +463,14 @@ class LineTracking:
         #img.gamma_corr(gamma=1.0)
         if threshold == None:
             threshold = self._enable_adaptive
-        img.midpoint(1, bias=1)
-        img.morph(self._kernal_size, \
-                  self._kernal, \
-                  threshold=threshold, \
-                  offset=2, \
-                  invert=True)
+        if self._enable_midpoint:
+            img.midpoint(1, bias=1) # maximum filtering
+        if self._enable_morph:
+            img.morph(self._kernal_size, \
+                    self._kernal, \
+                    threshold=threshold, \
+                    offset=2, \
+                    invert=True)
         if self._enable_binary:
             img.binary(self._thresholds)
         img.erode(1, threshold = 3)
