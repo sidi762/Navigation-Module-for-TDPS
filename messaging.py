@@ -19,7 +19,10 @@ class OpenMV_MessageHandler:
 
 
     _encoder_data = {'Info_Encoder_A': "0",
-                     'Info_Encoder_B': "0"}
+                     'Info_Encoder_B': "0",
+                     'Info_X': "0",
+                     'Info_Y': "0",
+                     'Info_Dir': "0"}
 
     _feedback_data = {'Info_Cam_Pitch': 0,
                       'Info_Ball': 0,
@@ -45,8 +48,9 @@ class OpenMV_MessageHandler:
 
     async def _update_encoder_data(self, data):
         try:
-            self._encoder_data['Info_Encoder_A'] = data['Info_Encoder_A']
-            self._encoder_data['Info_Encoder_B'] = data['Info_Encoder_B']
+            self._encoder_data['Info_X'] = data['Info_X']
+            self._encoder_data['Info_Y'] = data['Info_Y']
+            self._encoder_data['Info_Dir'] = data['Info_Dir']
         except:
             return False
         return True
