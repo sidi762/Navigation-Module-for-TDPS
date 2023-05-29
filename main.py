@@ -8,7 +8,7 @@ import sensor, image, time, pyb
 from machine import Pin, I2C
 from bno055 import BNO055, AXIS_P7
 from HCSR04 import HCSR04
-from Navigation import Navigator, LineTracking, DeadReckoning, Odometer
+from Navigation import AprilTagTracking, Navigator, LineTracking, DeadReckoning, Odometer
 from time import sleep_ms
 from pyb import Timer
 import uasyncio
@@ -78,7 +78,25 @@ pyb.LED(RED_LED_PIN).off()
 dr = DeadReckoning()
 
 line_tracking = LineTracking(sensor, draw=True)
-line_tracking_white = LineTracking(sensor, draw=True)
+line_tracking_white = LineTracking(sensor,
+                                   enable_adaptive=False,
+                                   enable_midpoint=False,
+                                   enable_morph=True,
+                                   enable_binary=True,
+                                   b_thresholds=[(150, 255)],
+                                   draw=True)
+red_threshold = (0, 100, 0, 127, 0, 127)
+line_tracking_red = LineTracking(sensor,
+                                 enable_midpoint=False,
+                                 enable_morph=False,
+                                 enable_binary=True,
+                                 b_thresholds=[red_threshold],
+                                 draw=True)
+april_tag_tracking = AprilTagTracking(sensor,
+                                      rho_pid_p = 0.6,
+                                      rho_pid_i = 0,
+                                      rho_pid_d = 0,
+                                      draw=True)
 navigator = Navigator(imu, status_data, turn_pid_p = 0.8,
                       turn_pid_i = 0.1, turn_pid_d = 0.008,
                       turn_pid_imax = 10)
@@ -150,6 +168,7 @@ async def start_patio_1():
                     # May need beacon, remove odo?
                     velocity = 0
                     status_data['Control_Velocity'] = velocity
+                    status_data['Control_PID'] = 0
                     current_task = 2
                     line_tracking.end()
                     break
@@ -161,8 +180,13 @@ async def start_patio_1():
             #Turn right 90 degress
             status_data['Info_Stage'] = 1
             await uasyncio.sleep_ms(1)
-            navigator.turn_right_90()
-            await uasyncio.sleep_ms(10000)
+            #navigator.turn_right_90()
+            await master_turn_right_90("1")
+            await uasyncio.sleep_ms(2000)
+            # For april tag
+
+
+
 
             odo = odometer.get_odometer()
             task_2_odo_start = odo
@@ -171,8 +195,22 @@ async def start_patio_1():
             # Crossing the bridge
             status_data['Info_Stage'] = 2
             print("Crossing the bridge")
+            status_data['Control_Cam_Pitch'] = 1
+            feedback_data = messaging.get_feedback_data()
+            while feedback_data['Info_Cam_Pitch'] != "1":
+                feedback_data = messaging.get_feedback_data()
+                await uasyncio.sleep_ms(1)
+            april_tag_tracking.start()
             while True:
                 await uasyncio.sleep_ms(1)
+                velocity = 100
+                status_data['Control_Velocity'] = velocity
+                control = april_tag_tracking.calculate()
+                if april_tag_tracking.found_tag:
+                    pyb.LED(GREEN_LED_PIN).on()
+                else:
+                    pyb.LED(GREEN_LED_PIN).off()
+                status_data['Control_PID'] = control
                 encoder_data = messaging.get_encoder_data()
                 odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
                                                   float(encoder_data['Info_Encoder_B']))
@@ -190,18 +228,16 @@ async def start_patio_1():
                 #    velocity = 60
                 #    status_data['Control_Velocity'] = velocity
 
-
-                velocity = 100
-                status_data['Control_Velocity'] = velocity
-
                 #check_task_done()
                 front_distance = ultrasonic.get_distance()
                 print("front: ", front_distance)
                 if front_distance == 0:
                     front_distance = 300
-                if front_distance < 25:
+                if front_distance < 20:
                     # odo?
+                    pyb.LED(GREEN_LED_PIN).off()
                     velocity = 0
+                    status_data['Control_PID'] = 0
                     status_data['Control_Velocity'] = 0
                     current_task = 3
                     break
@@ -213,33 +249,58 @@ async def start_patio_1():
             await uasyncio.sleep_ms(3000) # Wait for 3s
             #Turn left 90 degress
             status_data['Info_Stage'] = 1
-            navigator.turn_left_90()
-            await uasyncio.sleep_ms(10000)
-            task_3_target_heading = init_heading
-            navigator.set_target_heading(task_3_target_heading)
-            navigator.start_async()
+            # navigator.turn_left_90()
+            await master_turn_left_90("1")
+            await uasyncio.sleep_ms(3000)
+            # task_3_target_heading = 285
+            # navigator.set_target_heading(task_3_target_heading)
+            # navigator.start_async()
 
-            task_3_odo_start = odometer.get_odometer()
-            print("task 3 initial odo: ", task_3_odo_start)
-            last_odo = task_3_odo_start
+            # task_3_odo_start = odometer.get_odometer()
+            # print("task 3 initial odo: ", task_3_odo_start)
+            # last_odo = task_3_odo_start
 
             # Passing the Door
             status_data['Info_Stage'] = 2
+            velocity = 100
+            status_data['Control_Velocity'] = velocity
+            await uasyncio.sleep_ms(3000)
+            velocity = 0
+            status_data['Control_Velocity'] = velocity
+            status_data['Control_Cam_Pitch'] = 0
+            feedback_data = messaging.get_feedback_data()
+            while feedback_data['Info_Cam_Pitch'] != "0":
+                feedback_data = messaging.get_feedback_data()
+                await uasyncio.sleep_ms(1)
+            line_tracking_white.start()
+            p1_t3_counter = 0
             while True:
                 await uasyncio.sleep_ms(1)
-                encoder_data = messaging.get_encoder_data()
-                odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
-                                                  float(encoder_data['Info_Encoder_B']))
-                odo = odometer.get_odometer()
-                task_3_odo = odo - task_3_odo_start
-                if odo > last_odo:
-                    print("task_3_odo: ", task_3_odo)
-                    last_odo = odo
+                p1_t3_counter += 1
                 velocity = 100
                 status_data['Control_Velocity'] = velocity
-                if task_3_odo > 300:
+                #if p1_t3_counter < 300:
+                control, velocity = line_tracking_white.calculate()
+                line = line_tracking_white.get_line()
+                theta_err = line_tracking_white.get_theta_err()
+                status_data['Control_PID'] = control
+                #else:
+                    #status_data['Control_PID'] = 0
+
+                encoder_data = messaging.get_encoder_data()
+                odo = float(encoder_data['Info_Y'])
+                # odometer.update_with_encoder_data(float(encoder_data['Info_Encoder_A']),\
+                #                                   float(encoder_data['Info_Encoder_B']))
+                # odo = odometer.get_odometer()
+                # task_3_odo = odo - task_3_odo_start
+                # if odo > last_odo:
+                #     print("task_3_odo: ", task_3_odo)
+                #     last_odo = odo
+                front_distance = ultrasonic.get_distance()
+                if front_distance < 30:
                     # need tuning
-                    navigator.end_async()
+                    # navigator.end_async()
+                    line_tracking_white.end()
                     velocity = 0
                     status_data['Control_Velocity'] = velocity
                     #Patio 1 done
@@ -363,6 +424,19 @@ async def patio_2_task_1():
 
 
         await move_forward_until_hit()
+        #Todo: Line tracking?
+        # while True:
+        #     control, velocity = line_tracking_red.calculate()
+        #     line = line_tracking_red.get_line()
+        #     theta_err = line_tracking_red.get_theta_err()
+        #     status_data['Control_PID'] = control
+        #     front_distance = ultrasonic.get_distance()
+        #     if front_distance < 10:
+        #         status_data['Control_Velocity'] = 0
+        #         break
+
+        #Back off?
+
         #turn back
         status_data['Control_Angle'] = -angle
         while True:
