@@ -15,7 +15,7 @@
 #          -3, -2, +1]
 #thresholds = [(100, 255)]
 
-import image, time, uasyncio
+import image, time, uasyncio, math
 from Navigation.dead_reckoning import DeadReckoning
 from Navigation.odometer import Odometer
 from bno055 import BNO055, AXIS_P7
@@ -250,6 +250,87 @@ class Navigator:
 
     def get_control_output(self):
         return self._control_output
+
+class AprilTagTracking:
+
+    def __init__(self, sensor,
+                 rho_pid_p = 0.4, rho_pid_i = 0, rho_pid_d = 0,
+                 rho_pid_imax = 0,
+                 draw = False):
+
+        self._sensor = sensor
+        self._sensor_settings = {'pixformat': 0, 'framesize': 0}
+        self._is_started = False
+        self._draw = draw
+        self._rho_pid = PID(p = rho_pid_p,
+                            i = rho_pid_i,
+                            d = rho_pid_d,
+                            imax = rho_pid_imax)
+        self._theta_err = 0
+        self._rho_err = 0
+
+
+    def start(self):
+        """
+            Stores the current state of the sensor and sets the sensor
+            for line tracking
+        """
+        self._store_sensor_settings()
+        self._set_sensor_for_april_tag()
+        img = self._sensor.snapshot()
+        self._center_coord = img.width() / 2
+        self._is_started = True
+
+    def end(self):
+        """
+            Resumes sensor to the stored settings
+        """
+        # Resume sensor settings
+        sens = self._sensor
+        sens.set_pixformat(self._sensor_settings['pixformat'])
+        sens.set_framesize(self._sensor_settings['framesize'])
+        sens.set_vflip(self._sensor_settings['vflip'])
+        sens.set_hmirror(self._sensor_settings['hmirror'])
+        sens.skip_frames(time = 100)     # Wait for settings take effect.
+        self._is_started = False
+
+    def _set_sensor_for_april_tag(self):
+        sens = self._sensor
+        sens.set_pixformat(self._sensor.RGB565)
+        sens.set_framesize(self._sensor.HQVGA) # we run out of memory if the resolution is much bigger...
+        sens.set_auto_gain(False)  # must turn this off to prevent image washout...
+        sens.set_auto_whitebal(False)  # must turn this off to prevent image washout...
+        sens.set_vflip(True)
+        sens.set_hmirror(True)
+        sens.skip_frames(time = 100)     # Wait for settings take effect.
+
+    def _store_sensor_settings(self):
+        self._sensor_settings['pixformat'] = self._sensor.get_pixformat()
+        self._sensor_settings['framesize'] = self._sensor.get_framesize()
+        self._sensor_settings['vflip'] = self._sensor.get_vflip()
+        self._sensor_settings['hmirror'] = self._sensor.get_hmirror()
+
+    def calculate(self):
+        if not self._is_started:
+            print("Error: Set the camera first by calling AprilTagTracking.start()")
+            return 0
+        img = self._sensor.snapshot()
+        self._img = img
+        cx_error = None
+        for tag in img.find_apriltags(): # defaults to TAG36H11 without "families".
+            if self._draw:
+                img.draw_rectangle(tag.rect(), color = (255, 0, 0))
+                img.draw_cross(tag.cx(), tag.cy(), color = (0, 255, 0))
+            degress = 180 * tag.rotation() / math.pi
+            cx_error = tag.cx() - self._center_coord
+        if cx_error != None:
+            self.found_tag = True
+            rho_control = self._rho_pid.get_pid(cx_error, 1)
+            self._control = rho_control
+            return rho_control
+        else:
+            self.found_tag = False
+            return 0
 
 
 
