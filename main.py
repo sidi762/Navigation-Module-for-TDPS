@@ -677,7 +677,7 @@ async def patio_2_task_3():
     yaw, roll, pitch = imu.euler()
     task3_init_heading = yaw
     # Or 13 degrees
-    navigator.set_target_heading(13)
+    navigator.set_target_heading(15)
 
     current_stage = "forward"
     print(current_stage)
