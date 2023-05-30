@@ -56,8 +56,8 @@ while True:
     print('Gravity   x {:5.1f}    y {:5.1f}     z {:5.1f}'.format(*imu.gravity()))
     print('Heading     {:4.0f} roll {:4.0f} pitch {:4.0f}'.format(*imu.euler()))
     heading, roll, pitch = imu.euler()
-    heading -= 90
-    if heading < 0:
-        heading += 360
+    heading += 90
+    if heading > 360:
+        heading -= 360
     print(heading)
 
