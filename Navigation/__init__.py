@@ -18,7 +18,7 @@
 import image, time, uasyncio, math
 from Navigation.dead_reckoning import DeadReckoning
 from Navigation.odometer import Odometer
-from bno055 import BNO055, AXIS_P7
+from bno055_third_party import *
 from pid import PID
 
 class Navigator:
@@ -44,12 +44,15 @@ class Navigator:
         self._status_data_ref['Control_PID'] = control
 
     def _update_current_heading_from_imu(self, imu):
-        yaw, roll, pitch = imu.euler()
+        heading, roll, pitch = imu.euler()
         # Note: Might need to revisit this for the
         # potential issues with calibration
-        self._current_heading = yaw
+        heading += 90
+        if heading > 360:
+            heading -= 360
+        self._current_heading = heading
         #print("Current heading: ", yaw)
-        return yaw
+        return heading
 
     def _clip_turn_error(self, turn_err):
         if turn_err < 0:
