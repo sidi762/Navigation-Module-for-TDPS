@@ -254,6 +254,9 @@ class Navigator:
     def get_control_output(self):
         return self._control_output
 
+    def is_async_navigating(self):
+        return self._is_navigating
+
 class AprilTagTracking:
 
     def __init__(self, sensor,
