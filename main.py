@@ -78,7 +78,7 @@ offsets = b'\x00\x00\x00\x00\x00\x00\x17\x00\xb8\x01\xfd\xff\x00\x00\x00\x00\xff
 imu.set_offsets(offsets)
 print("IMU calibration data loaded")
 
-dr = DeadReckoning()
+#dr = DeadReckoning()
 
 line_tracking = LineTracking(sensor, draw=True)
 line_tracking_white = LineTracking(sensor,
@@ -157,7 +157,7 @@ async def start_patio_1():
                 #print(ultrasonic.get_distance())
                 #print(ultrasonic_right.get_distance())
                 if imu:
-                    dr.dead_reckoning(imu)
+                    #dr.dead_reckoning(imu)
                     yaw, roll, pitch = imu.euler()
                     #print("Heading: ", yaw)
                     #print("Velocity m/s: ", dr.velocity_x, dr.velocity_y, dr.velocity_z)
