@@ -74,7 +74,7 @@ while imu == None:
         pyb.LED(RED_LED_PIN).on()
 
 pyb.LED(RED_LED_PIN).off()
-offsets = b'\x00\x00\x00\x00\x00\x00\x17\x00\xb8\x01\xfd\xff\x00\x00\x00\x00\xff\xff\xe8\x03l\x02'
+offsets = b'\x00\x00\x00\x00\x00\x00\xe3\x00C\x02\xfe\xfe\x00\x00\x00\x00\x00\x00\xe8\x03 \x03'
 imu.set_offsets(offsets)
 print("IMU calibration data loaded")
 
@@ -464,7 +464,7 @@ async def patio_2_task_1():
     return 0
 
 
-def control_right_distance(target_distance = 20, p = 0.7, i = 0.8, d = 7.8, mul = 1.0, lim = 30):
+def control_right_distance(target_distance = 20, p = 0.2, i = 0.8, d = 7.8, mul = 1.0, lim = 30):
     task2_pid = PID(p=p, i=i, d=d)
     right_distance = ultrasonic_right.get_distance()
     print("The right distance is", right_distance)
@@ -478,7 +478,10 @@ def control_right_distance(target_distance = 20, p = 0.7, i = 0.8, d = 7.8, mul 
     elif steering_pid < -lim:
         steering_pid = -lim
     status_data['Control_PID'] = steering_pid * mul
-    status_data['Control_velocity'] = 100 - abs(steering_pid * 5)
+    velocity = 100 - abs((right_distance - target_distance) * 4)
+    if velocity < 35:
+        velocity = 35
+    status_data['Control_Velocity'] = velocity
 
 async def master_turn_right_90(stage):
     status_data['Control_Angle'] = 90
@@ -587,7 +590,7 @@ async def patio_2_task_2():
         if right_distance < 40:
             control_right_distance(20)
         if right_distance > 60 and right_distance != 300:
-            await uasyncio.sleep_ms(2000)
+            await uasyncio.sleep_ms(4000)
             status_data['Control_Velocity'] = 0
             current_stage = "turn_right2"
             print(current_stage)
@@ -606,11 +609,23 @@ async def patio_2_task_2():
 
     #status_data['Control_Velocity'] = 100
     #await uasyncio.sleep_ms(3000)
-    navigator.set_target_heading(194) # To be confirmed
-    offsets = b'\x00\x00\x00\x00\x00\x00\x17\x00\xb8\x01\xfd\xff\x00\x00\x00\x00\xff\xff\xe8\x03l\x02'
+
+    #offsets = b'\x00\x00\x00\x00\x00\x00\x17\x00\xb8\x01\xfd\xff\x00\x00\x00\x00\xff\xff\xe8\x03l\x02'
+    offsets = b'\x00\x00\x00\x00\x00\x00\xe3\x00C\x02\xfe\xfe\x00\x00\x00\x00\x00\x00\xe8\x03 \x03'
     imu.set_offsets(offsets)
+    await uasyncio.sleep_ms(20)
+    heading, roll, pitch = imu.euler()
+    heading += 90
+    if heading > 360:
+        heading -= 360
+    if heading < 194.5 and heading > 192.5:
+        navigator.set_target_heading(193.5) # To be confirmed
+        pyb.LED(GREEN_LED_PIN).on()
+    else:
+        navigator.set_target_heading(heading)
+    await uasyncio.sleep_ms(1000)
     navigator.start_async()
-    await uasyncio.sleep_ms(3000)
+    await uasyncio.sleep_ms(2000)
     while current_stage == "forward4":
         status_data['Control_Velocity'] = 70
         distance = ultrasonic.get_distance()
@@ -621,12 +636,13 @@ async def patio_2_task_2():
         # if right_distance < 40:
         #     control_right_distance(20, 0.5, 1, 40, 1)
 
-        if distance < 15 and distance != 0:
+        if distance < 20 and distance != 0:
             if navigator.is_async_navigating():
                 navigator.end_async()
             status_data['Control_Velocity'] = -100
             await uasyncio.sleep_ms(500)
             current_stage = "turn_left2"
+            pyb.LED(GREEN_LED_PIN).off()
             print(current_stage)
 
             break
@@ -643,9 +659,10 @@ async def patio_2_task_2():
 
     # stage: "forward5" Todo: add some control on heading
     while current_stage == "forward5":
-        status_data['Control_Velocity'] = 70
+        status_data['Control_Velocity'] = 80
         distance = ultrasonic.get_distance()
-        control_right_distance(20, 0.5, 1, 30, 1, 20)
+        #control_right_distance(20, 0.3, 1, 30, 1, 20)
+        control_right_distance(20)
         print("The distance is", distance)
         if distance < 20 :
             print("Bucket Detected!")
@@ -666,6 +683,27 @@ async def patio_2_task_2():
 
     return 0 #task 2 done
 
+async def wireless_comm():
+    status_data['Control_Comm'] = 1
+    feedback = messaging.get_feedback_data()
+    while feedback['Info_Comm'] == "0":
+        await uasyncio.sleep_ms(1)
+        pyb.LED(BLUE_LED_PIN).toggle()
+        feedback = messaging.get_feedback_data()
+        if feedback['Info_Comm'] == "1":
+            pyb.LED(BLUE_LED_PIN).off()
+            return 0
+
+
+    print("Driving to finishing line!")
+
+    # Drive to finish line
+    status_data['Control_Velocity'] = 500
+    await uasyncio.sleep_ms(6000)
+    status_data['Control_Velocity'] = 0
+    print("finishing line arrived!")
+    await uasyncio.sleep_ms(5000)
+
 async def patio_2_task_3():
     status_data['Info_Task'] = 3
     status_data['Info_Stage'] = 0
@@ -675,7 +713,7 @@ async def patio_2_task_3():
     current_stage = "backward0"
     print(current_stage)
     status_data['Control_Velocity'] = -80
-    await uasyncio.sleep_ms(5000)
+    await uasyncio.sleep_ms(6000)
     status_data['Control_Velocity'] = 0
     current_stage = "turn_left"
     print(current_stage)
@@ -744,21 +782,13 @@ async def patio_2_task_3():
     print("communication spot arrived!")
 
     # Communication
-    status_data['Control_Comm'] = 1
-    feedback = messaging.get_feedback_data()
-    while feedback['Info_Comm'] == "0":
-        await uasyncio.sleep_ms(1)
-        pyb.LED(BLUE_LED_PIN).toggle()
-        feedback = messaging.get_feedback_data()
-        if feedback['Info_Comm'] == "1":
-            pyb.LED(BLUE_LED_PIN).off()
-            break
+    await wireless_comm()
 
 
     print("Driving to finishing line!")
 
     # Drive to finish line
-    status_data['Control_Velocity'] = 100
+    status_data['Control_Velocity'] = 500
     await uasyncio.sleep_ms(6000)
     status_data['Control_Velocity'] = 0
     print("finishing line arrived!")
@@ -813,6 +843,9 @@ async def main():
             if ret == 0:
                 break
         elif current_patio == 2:
+            #while True:
+                #await wireless_comm()
+                #await uasyncio.sleep_ms(5000)
             ret = await start_patio_2()
             if ret == 0:
                 break
