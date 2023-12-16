@@ -14,7 +14,7 @@ Important Files:
     - odometer.py
 
 
-Communication protocol：
+Communication protocol：  
 The specified parameters for UART communication to the main control board are as follows:
 
 - Baudrate: 115200
