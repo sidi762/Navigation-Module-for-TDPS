@@ -1,4 +1,4 @@
-<img width="305" alt="image" src="https://github.com/sidi762/Navigation-Module-for-TDPS/assets/19572399/630e77cc-3b02-4d40-b101-9c028b960554"># TDPS Smart Vehicle Project - Navigation Module
+# TDPS Smart Vehicle Project - Navigation Module
 ## for the course UESTC3010: Team Design and Project Skills (TDPS)
 ### Team 13
 
