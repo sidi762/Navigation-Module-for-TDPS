@@ -48,15 +48,15 @@ The actual message content is structured as follows:
 5. Send: `0xCC` (if correct) or `0xDD` (if incorrect)
 6. Repeat the sequence...
 
-| Sender | Receiver | Message Type | Byte Sequence                                             | Acknowledgment  |
+| Sender | Receiver | Message Type | Byte Sequence                                             | Note  |
 |--------|----------|--------------|-----------------------------------------------------------|------------------|
-| Nav    | Master   | Control      | `0xCD`                                                  | -                |
-| Master | Nav      | Data         | `0xAA, 0x55, {length of message n}, {message n}`         | `0xCC` (if correct) or `0xDD` (if incorrect) |
+| Nav    | Master   | Control      | `0xCD`                                                  | Initiates the communication                |
+| Master | Nav      | Data         | `0xAA, 0x55, {length of message n}, {message n}`         | - |
 | Nav    | Master   | Acknowledgment | `0xCC (0xDD if incorrect)`                               | -                |
-| Master | Nav      | Data         | `0xAA, 0x55, {length of message m}, {message m}`         | `0xCC` (if correct) or `0xDD` (if incorrect) |
+| Master | Nav      | Data         | `0xAA, 0x55, {length of message m}, {message m}`         | - |
 | Nav    | Master   | Acknowledgment | `0xCC (0xDD if incorrect)`                               | -                |
-| Master | Nav      | Control      | `0xCD`                                                  | -                |
-| Nav    | Master   | Data         | `0xAA, 0x55, {length of message n+1}, {message n+1}`     | `0xCC` (if correct) or `0xDD` (if incorrect) |
+| Master | Nav      | Control      | `0xCD`                                                  | Initiates another round of communication    |
+| Nav    | Master   | Data         | `0xAA, 0x55, {length of message n+1}, {message n+1}`     | - |
 | ...    | ...      | ...          | ...                                                       | ...              |
 
 
