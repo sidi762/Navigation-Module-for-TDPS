@@ -25,7 +25,7 @@ Important Files:
 - messaging.py 
 - HCSR04
     - \_\_init\_\_.py
-- LineTracking
+- Navigation
     - \_\_init\_\_.py
     - odometer.py
 
