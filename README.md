@@ -52,9 +52,9 @@ The actual message content is structured as follows:
 |--------|----------|--------------|-----------------------------------------------------------|------------------|
 | Nav    | Master   | Control      | `0xCD`                                                  | -                |
 | Master | Nav      | Data         | `0xAA, 0x55, {length of message n}, {message n}`         | `0xCC` (if correct) or `0xDD` (if incorrect) |
-| Nav    | Master   | Acknowledgment | `0xCC (if correct, 0xDD)`                               | -                |
+| Nav    | Master   | Acknowledgment | `0xCC (0xDD if incorrect)`                               | -                |
 | Master | Nav      | Data         | `0xAA, 0x55, {length of message m}, {message m}`         | `0xCC` (if correct) or `0xDD` (if incorrect) |
-| Nav    | Master   | Acknowledgment | `0xCC (if correct, 0xDD)`                               | -                |
+| Nav    | Master   | Acknowledgment | `0xCC (0xDD if incorrect)`                               | -                |
 | Master | Nav      | Control      | `0xCD`                                                  | -                |
 | Nav    | Master   | Data         | `0xAA, 0x55, {length of message n+1}, {message n+1}`     | `0xCC` (if correct) or `0xDD` (if incorrect) |
 | ...    | ...      | ...          | ...                                                       | ...              |
