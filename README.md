@@ -1,8 +1,24 @@
 # TDPS Smart Vehicle Project - Navigation Module
-## for the course UESTC3010: Team Design and Project Skills (TDPS)
+for the course UESTC3010: Team Design and Project Skills (TDPS)
 ### Team 13
-
 ### IMPORTANT NOTICE: THIS IS A COURSE PROJECT. ANY USES OF THE CODE THAT MIGHT CONSTITUDE PLAGIARISM FOR EITHER THIS COURSE OR ANY OTHER COURSES ARE NOT ALLOWED.
+### Team Members
+
+| **Name**         | **Group**          | **Responsibility**                                |
+|------------------|--------------------|---------------------------------------------------|
+| ZHANG Keyu       |                    | Team Leader / Hardware Group Manager              |
+| LIANG Sidi       |                    | Project Manager / Vision Group Manager            |
+| ZHANG Yuxin      |                    | Power Unit and PCB Design                         |
+| HUANG Yukun      |                    | Wireless Communication and Ultrasonic Sensing     |
+| LIU Yicong       | Hardware           | Budget Management and Mechanical Structure Design |
+| DIAN Mingqian    |                    | Interfacing / Control Group Manager               |
+| LI Chenjun       |                    | STM32 Interfacing                                 |
+| LIU Yi           | Control            | PID Control and Patrol Logic                      |
+| YU Yunke         |                    | OpenMV Lane Tracing                               |
+| SUN Qihao        | Vision             | OpenMV Image Processing                           |
+
+The modules contained in this repository is built by Liang Sidi and Yu Yunke.
+
 
 Important Files:
 - main.py
@@ -14,7 +30,7 @@ Important Files:
     - odometer.py
 
 
-Communication protocol：  
+## Communication protocol：  
 The specified parameters for UART communication to the main control board are as follows:
 
 - Baudrate: 115200
@@ -22,14 +38,14 @@ The specified parameters for UART communication to the main control board are as
 - Parity: None
 - Stop: 1
 
-## Frame Structure
+### Frame Structure
 
 The communication protocol involves the exchange of frames, each consisting of specific byte sequences. The frames convey different messages based on their content. The meanings of key byte sequences are explained below:
 
 1. **0xCC:** Acknowledgment (ACK)
 2. **0xDD:** Retransmission Request
 
-### Message Content Format
+#### Message Content Format
 
 The actual message content is structured as follows:
 
@@ -37,9 +53,9 @@ The actual message content is structured as follows:
 2. Message Length
 3. Message Content (in JSON format)
 
-## Communication Sequence
+### Communication Sequence
 
-### Navigation Module to Master
+#### Navigation Module to Master
 
 1. Send: `0xCD`
 2. Receive: `0xAA`, `0x55`, `{length of message n}`, `{message n}`, `0xCC` (if correct) or `0xDD` (if incorrect)
@@ -60,11 +76,11 @@ The actual message content is structured as follows:
 | ...    | ...      | ...          | ...                                                       | ...              |
 
 
-### Message Content (4 ~ n)
+#### Message Content (4 ~ n)
 
 The message content, ranging from the 4th byte onward, is expected to be in JSON format. Below are examples of the expected JSON structures for the OpenMV line-following section:
 
-#### OpenMV Line Following (Sent by Navigation Module)
+##### OpenMV Line Following (Sent by Navigation Module)
 
 ```json
 {
@@ -80,7 +96,7 @@ The message content, ranging from the 4th byte onward, is expected to be in JSON
 }
 ```
 
-#### Main Controller (Sent by Master)
+##### Main Controller (Sent by Master)
 
 ```json
 {
