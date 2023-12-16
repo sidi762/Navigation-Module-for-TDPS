@@ -6,16 +6,16 @@ for the course UESTC3010: Team Design and Project Skills (TDPS)
 
 | **Name**         | **Group**          | **Responsibility**                                |
 |------------------|--------------------|---------------------------------------------------|
-| ZHANG Keyu       |                    | Team Leader / Hardware Group Manager              |
-| LIANG Sidi       |                    | Project Manager / Vision Group Manager            |
-| ZHANG Yuxin      |                    | Power Unit and PCB Design                         |
-| HUANG Yukun      |                    | Wireless Communication and Ultrasonic Sensing     |
-| LIU Yicong       | Hardware           | Budget Management and Mechanical Structure Design |
-| DIAN Mingqian    |                    | Interfacing / Control Group Manager               |
-| LI Chenjun       |                    | STM32 Interfacing                                 |
-| LIU Yi           | Control            | PID Control and Patrol Logic                      |
-| YU Yunke         |                    | OpenMV Lane Tracing                               |
-| SUN Qihao        | Vision             | OpenMV Image Processing                           |
+| ZHANG Keyu       | Hardware           | **Team Leader** / *Hardware Group Manager*        |
+| LIANG Sidi       | Vision             | **Project Manager** / *Vision Group Manager*      |
+| DIAN Mingqian    | Control            | *Control Group Manager*                           |
+| ZHANG Yuxin      | Hardware           |                                                   |
+| HUANG Yukun      | Hardware           |                                                   |
+| LIU Yicong       | Hardware           |                                                   |
+| LI Chenjun       | Control            |                                                   |
+| LIU Yi           | Control            |                                                   |
+| YU Yunke         | Vision             |                                                   |
+| SUN Qihao        | Vision             |                                                   |
 
 The modules contained in this repository is built by Liang Sidi and Yu Yunke.
 
