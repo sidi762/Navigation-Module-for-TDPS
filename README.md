@@ -17,7 +17,7 @@ for the course UESTC3010: Team Design and Project Skills (TDPS)
 | YU Yunke         | Vision             |                                                   |
 | SUN Qihao        | Vision             |                                                   |
 
-The modules contained in this repository is built by Liang Sidi and Yu Yunke.
+The modules contained in this repository are built by Liang Sidi and Yu Yunke.
 
 
 Important Files:
